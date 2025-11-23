@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     X, User, Mail, Phone, Lock, Shield, Save, 
-    UserPlus, UserCog, ArrowRight, AlertCircle 
+    UserPlus, UserCog, ArrowRight, AlertCircle, Eye, EyeOff 
 } from 'lucide-react';
 
 // Define roles
@@ -27,6 +27,8 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
         is_active: true,
     });
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // 2. Load existing user data when editing
     useEffect(() => {
@@ -250,29 +252,47 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 block">
                                         Password {isEditing ? '' : <span className="text-red-400">*</span>}
                                     </label>
-                                    <input
-                                        name="password"
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        className={inputClass}
-                                        required={!isEditing && !formData.password_confirm}
-                                        placeholder={isEditing ? 'Leave blank to keep current' : 'Enter password'}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            name="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            className={inputClass}
+                                            required={!isEditing && !formData.password_confirm}
+                                            placeholder={isEditing ? 'Leave blank to keep current' : 'Enter password'}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B36372] dark:hover:text-primary-400 transition-colors"
+                                        >
+                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 block">
                                         Confirm Password {isEditing ? '' : <span className="text-red-400">*</span>}
                                     </label>
-                                    <input
-                                        name="password_confirm"
-                                        type="password"
-                                        value={formData.password_confirm}
-                                        onChange={handleChange}
-                                        className={inputClass}
-                                        required={!isEditing && !formData.password}
-                                        placeholder={isEditing ? 'Leave blank to keep current' : 'Confirm password'}
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            name="password_confirm"
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            value={formData.password_confirm}
+                                            onChange={handleChange}
+                                            className={inputClass}
+                                            required={!isEditing && !formData.password}
+                                            placeholder={isEditing ? 'Leave blank to keep current' : 'Confirm password'}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#B36372] dark:hover:text-primary-400 transition-colors"
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
