@@ -9,23 +9,14 @@ import toast from 'react-hot-toast';
 
 // --- THEME CONSTANTS ---
 const THEME = {
-    // Text Colors
     primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
     headingText: "text-gray-900 dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
-    
-    // Gradients
     gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
     gradientBg: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9]",
-    
-    // Backgrounds
     pageBg: "bg-gradient-to-br from-white via-[#FFE4E1]/20 to-[#FF69B4]/10 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#2C1A21]",
-    
-    // Components
     cardBase: "bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#FF69B4]/20 shadow-lg shadow-[#FF69B4]/5 dark:shadow-black/20",
     inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
-    
-    // Buttons
     buttonPrimary: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200",
     buttonIcon: "bg-[#FF69B4]/10 text-[#FF69B4] hover:bg-[#FF69B4]/20 dark:bg-[#FF69B4]/20 dark:text-[#FF77A9] dark:hover:bg-[#FF69B4]/30"
 };
@@ -102,11 +93,40 @@ const POSPage = () => {
         setSearchQuery('');
     };
 
-    // Checkout mutation
+    // ✅ FIXED: Checkout mutation with proper transaction number handling
     const checkoutMutation = useMutation({
         mutationFn: async (checkoutData) => await posService.checkout(checkoutData),
         onSuccess: (response) => {
-            toast.success(`Transaction completed! Transaction #${response.data.transaction_number}`);
+            console.log('=== TRANSACTION RESPONSE ===');
+            console.log('Full response.data:', response.data);
+            
+            const paymentMethod = response?.data?.payment_method;
+            const paymentReference = response?.data?.payment_reference;
+            const transactionId = response?.data?.id || response?.data?.transaction_id;
+            
+            console.log('Payment Method:', paymentMethod);
+            console.log('Payment Reference:', paymentReference);
+            console.log('Transaction ID:', transactionId);
+            
+            // Determine what to show as transaction number
+            let transactionNumber;
+            if (paymentReference && paymentReference.trim() !== '') {
+                // Has payment reference (GCash/PayMaya)
+                transactionNumber = paymentReference;
+            } else if (transactionId) {
+                // Use transaction ID if available
+                transactionNumber = `TXN-${transactionId}`;
+            } else if (paymentMethod === 'CASH') {
+                // Generate timestamp-based reference for cash
+                const timestamp = new Date().getTime().toString().slice(-8);
+                transactionNumber = `CASH-${timestamp}`;
+            } else {
+                transactionNumber = 'COMPLETED';
+            }
+            
+            console.log('Final Transaction Number:', transactionNumber);
+            
+            toast.success(`Transaction completed! Receipt #${transactionNumber}`);
             setCart([]);
             setIsCheckoutOpen(false);
             queryClient.invalidateQueries({ queryKey: ['pos-products'] });
@@ -114,6 +134,7 @@ const POSPage = () => {
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         },
         onError: (error) => {
+            console.error('Checkout Error:', error);
             const errorMessage = error.response?.data?.detail || error.response?.data?.error || 'Failed to complete transaction.';
             toast.error(errorMessage);
         }
@@ -239,7 +260,6 @@ const POSPage = () => {
                                     <option key={category.id} value={category.id}>{category.name}</option>
                                 ))}
                             </select>
-                            {/* Custom arrow or styling logic can go here if needed */}
                         </div>
                     </div>
                 </div>

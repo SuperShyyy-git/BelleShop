@@ -77,6 +77,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
     try {
       await onCheckout(checkoutData);
       resetForm();
+      onClose();
     } catch (error) {
       console.error('Checkout error:', error);
     } finally {
@@ -125,7 +126,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
           
           {/* LEFT COLUMN: Payment Details */}
           <div className="flex-1 p-6 lg:p-8 space-y-8 overflow-y-auto bg-white dark:bg-[#1e1e1e]">
@@ -295,7 +296,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
             </div>
 
           </div>
-        </form>
+        </div>
 
         {/* Footer Actions */}
         <div className="p-6 border-t border-gray-200 dark:border-[#FF69B4]/10 bg-white dark:bg-[#1e1e1e] flex gap-4 shrink-0">
@@ -308,7 +309,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
             Cancel
           </button>
           <button
-            type="submit"
+            type="button"
             onClick={handleSubmit}
             disabled={!isFormValid || isProcessing}
             className={`flex-[2] py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${THEME.buttonPrimary}`}
