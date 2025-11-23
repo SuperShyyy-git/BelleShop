@@ -1,3 +1,5 @@
+// src/contexts/AuthContext.jsx (Focus on the login function)
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import api from '../services/api';
@@ -6,6 +8,7 @@ import toast from 'react-hot-toast';
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
+  // ... (context setup)
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within AuthProvider');
@@ -26,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     
     if (token) {
       try {
-        const response = await api.get('/auth/me/');
+        const response = await api.get('/auth/me/'); 
         setUser(response.data);
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -47,15 +50,24 @@ export const AuthProvider = ({ children }) => {
 
       const { access, refresh, user: userData } = response.data;
 
-      Cookies.set('access_token', access, { expires: 1 });
-      Cookies.set('refresh_token', refresh, { expires: 7 });
+      // 🚨 CRITICAL FIX: Ensure security flags are set for localhost HTTP connection
+      Cookies.set('access_token', access, { 
+          expires: 1, 
+          secure: false, // Set to false for localhost (HTTP)
+          sameSite: 'Lax' 
+      });
+      Cookies.set('refresh_token', refresh, { 
+          expires: 7, 
+          secure: false, // Set to false for localhost (HTTP)
+          sameSite: 'Lax' 
+      });
 
       setUser(userData);
       toast.success(`Welcome back, ${userData.full_name}!`);
       
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.detail || 'Login failed';
+      const message = error.response?.data?.detail || 'Invalid credentials or server error.';
       toast.error(message);
       return { success: false, error: message };
     }
@@ -63,7 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout/');
+      await api.post('/auth/logout/'); 
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

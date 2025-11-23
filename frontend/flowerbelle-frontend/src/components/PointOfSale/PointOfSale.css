@@ -1,0 +1,15 @@
+.pos-container {
+  display: grid;
+  grid-template-columns: 1fr 300px; 
+  gap: 20px;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #f8f8f8;
+}
+
+h1 { grid-column: 1 / -1; margin-bottom: 10px; }
+.product-grid { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); min-height: 600px; }
+.cart-sidebar { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); height: fit-content; position: sticky; top: 20px; }
+.cart-sidebar h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+.cart-sidebar p { margin-bottom: 10px; display: flex; justify-content: space-between; }
+.proceed-btn { width: 100%; margin-top: 20px; }

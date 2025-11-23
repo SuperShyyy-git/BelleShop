@@ -1,21 +1,40 @@
+// src/services/posService.js
+
 import api from './api';
 
-export const posService = {
-  // Transactions
-  getTransactions: (params) => api.get('/pos/transactions/', { params }),
-  getTransaction: (id) => api.get(`/pos/transactions/${id}/`),
-  createTransaction: (data) => api.post('/pos/transactions/', data),
-  voidTransaction: (id, reason) => api.post(`/pos/transactions/${id}/void/`, { reason }),
+const posService = {
+  // Create a new sales transaction (checkout)
+  // ✅ FIX: No colon, no ID. Just POST to the collection.
+  checkout: async (transactionData) => {
+    return await api.post('/pos/transactions/', transactionData);
+  },
 
-  // Cart
-  getCart: () => api.get('/pos/cart/'),
-  addToCart: (data) => api.post('/pos/cart/add/', data),
-  updateCartItem: (id, quantity) => api.patch(`/pos/cart/items/${id}/`, { quantity }),
-  removeCartItem: (id) => api.delete(`/pos/cart/items/${id}/remove/`),
-  clearCart: () => api.delete('/pos/cart/'),
-  checkout: (data) => api.post('/pos/checkout/', data),
+  // Get all transactions
+  getTransactions: async (params = {}) => {
+    return await api.get('/pos/transactions/', { params });
+  },
 
-  // Reports
-  getDailySales: () => api.get('/pos/reports/daily/'),
-  getSalesReport: (params) => api.get('/pos/reports/sales/', { params }),
+  // Get single transaction
+  // ✅ FIX: Used backticks ` ` for template literal
+  getTransaction: async (id) => {
+    return await api.get(`/pos/transactions/${id}/`);
+  },
+
+  // Void a transaction
+  // ✅ FIX: Used backticks ` ` for template literal
+  voidTransaction: async (id, reason) => {
+    return await api.post(`/pos/transactions/${id}/void/`, { reason });
+  },
+
+  // Get sales report
+  getSalesReport: async (params = {}) => {
+    return await api.get('/pos/sales-report/', { params });
+  },
+
+  // Get today's sales
+  getTodaySales: async () => {
+    return await api.get('/pos/today-sales/');
+  },
 };
+
+export default posService;
