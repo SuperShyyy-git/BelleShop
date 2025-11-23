@@ -9,14 +9,19 @@ import {
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { user, logout } = useAuth(); 
-  const { isDarkMode, toggleDarkMode } = useTheme(); // ✅ FIXED: Changed from toggleTheme to toggleDarkMode
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(true);
   };
 
   const menuItems = [
@@ -34,6 +39,39 @@ const Layout = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#111] transition-colors duration-200">
       
+      {/* LOGOUT CONFIRMATION MODAL */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 max-w-md w-full p-6 transform transition-all">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-primary-100 dark:bg-primary-900/20 rounded-full">
+              <LogOut className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+            </div>
+            
+            <h3 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
+              Confirm Logout
+            </h3>
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to log out of your account?
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white font-medium rounded-lg transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MOBILE TOGGLE BUTTON */}
       <button 
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -94,7 +132,7 @@ const Layout = ({ children }) => {
                   <span className="text-xs text-gray-500 dark:text-gray-400">{user?.role}</span>
                </div>
             </Link>
-            <button onClick={handleLogout} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
+            <button onClick={confirmLogout} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                 <LogOut className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
@@ -112,7 +150,7 @@ const Layout = ({ children }) => {
           
           <div className="flex items-center space-x-4">
             <button 
-              onClick={toggleDarkMode}  // ✅ FIXED: Changed from toggleTheme to toggleDarkMode
+              onClick={toggleDarkMode}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-all"
             >
               {isDarkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5" />}

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import userService from '../services/userService';
+import authService from '../services/authService';
 import Loading from '../components/common/Loading';
-import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast'; 
 
 // --- THEME CONSTANTS ---
@@ -27,6 +29,7 @@ const THEME = {
 };
 
 const ProfilePage = () => {
+    const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
     const [formData, setFormData] = useState({
         full_name: '',
@@ -39,6 +42,7 @@ const ProfilePage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     // --- 1. Fetch Current User Data ---
     const fetchUserData = async () => {
@@ -119,6 +123,13 @@ const ProfilePage = () => {
         } finally {
             setIsSaving(false);
         }
+    };
+
+    // --- 4. Handle Logout ---
+    const handleLogout = () => {
+        authService.logout();
+        toast.success("Logged out successfully!");
+        navigate('/login');
     };
 
     if (loading || !userData) {
@@ -335,9 +346,62 @@ const ProfilePage = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Logout Button */}
+                        <button
+                            onClick={() => setShowLogoutModal(true)}
+                            className="w-full px-6 py-4 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-3xl font-bold flex items-center justify-center gap-2 border-2 border-red-200 dark:border-red-800/30 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/10"
+                        >
+                            <LogOut className="w-5 h-5" />
+                            Log Out
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className={`w-full max-w-md rounded-3xl ${THEME.cardBase} overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200`}>
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <LogOut className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold">Confirm Logout</h3>
+                                    <p className="text-sm text-white/90">Are you sure you want to leave?</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6">
+                            <p className={`text-sm ${THEME.subText} mb-6`}>
+                                You will be logged out of your account and redirected to the login page. Any unsaved changes will be lost.
+                            </p>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowLogoutModal(false)}
+                                    className="flex-1 px-6 py-3 bg-gray-100 dark:bg-[#1A1A1D] hover:bg-gray-200 dark:hover:bg-[#252525] text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transition-all duration-200"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
