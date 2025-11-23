@@ -75,38 +75,84 @@ class DashboardOverviewView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        today = timezone.localtime(timezone.now()).date()
-        week_start = today - timedelta(days=today.weekday())
-        month_start = today.replace(day=1)
+        # --- FIX STARTS HERE ---
+        # 1. Get current time in Local Timezone (Asia/Manila)
+        now = timezone.localtime(timezone.now())
+        
+        # 2. Define strict start times (12:00:00 AM) for Today, Week, and Month
+        # This fixes the "0" issue by catching everything AFTER midnight today.
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        start_of_week = start_of_day - timedelta(days=now.weekday()) # Monday of this week
+        start_of_month = start_of_day.replace(day=1) # 1st of this month
+
         valid_statuses = ['COMPLETED', 'PAID', 'PENDING', 'Completed', 'Paid']
         base_filter = SalesTransaction.objects.filter(status__in=valid_statuses)
+        
+        # 3. Use __gte (Greater Than or Equal) on the timestamp, not the date
+        today_txns = base_filter.filter(created_at__gte=start_of_day)
+        week_txns = base_filter.filter(created_at__gte=start_of_week)
+        month_txns = base_filter.filter(created_at__gte=start_of_month)
+        # --- FIX ENDS HERE ---
 
         def get_metrics(txns):
-            metrics = txns.aggregate(sales=Sum('total_amount'), transactions=Count('id'), profit_sum=PROFIT_AGGREGATION)
-            return {'sales': metrics['sales'] or 0, 'transactions': metrics['transactions'] or 0, 'profit': metrics['profit_sum'] or 0}
+            metrics = txns.aggregate(
+                sales=Sum('total_amount'), 
+                transactions=Count('id'), 
+                profit_sum=PROFIT_AGGREGATION
+            )
+            return {
+                'sales': metrics['sales'] or 0, 
+                'transactions': metrics['transactions'] or 0, 
+                'profit': metrics['profit_sum'] or 0
+            }
 
-        today_txns = base_filter.filter(created_at__date=today)
         today_data = get_metrics(today_txns)
-        week_txns = base_filter.filter(created_at__date__gte=week_start)
         week_data = get_metrics(week_txns)
-        month_txns = base_filter.filter(created_at__date__gte=month_start)
         month_data = get_metrics(month_txns)
+        
         total_products = Product.objects.filter(is_active=True).count()
         low_stock_count = Product.objects.filter(current_stock__lt=10, is_active=True).count()
         out_of_stock_count = Product.objects.filter(current_stock=0, is_active=True).count()
-        inventory_value = Product.objects.filter(is_active=True).aggregate(total=Sum(F('current_stock') * F('cost_price')))['total'] or 0
-        top_products = TransactionItem.objects.filter(transaction__in=month_txns).values('product__id', 'product__name', 'product__sku').annotate(total_quantity=Sum('quantity'), total_sales=Sum('line_total')).order_by('-total_quantity')[:5]
-        recent_txns = base_filter.order_by('-created_at')[:10].values('id', 'transaction_number', 'total_amount', 'created_at', 'created_by__full_name')
+        inventory_value = Product.objects.filter(is_active=True).aggregate(
+            total=Sum(F('current_stock') * F('cost_price'))
+        )['total'] or 0
+        
+        # Top products logic (based on month transactions)
+        top_products = TransactionItem.objects.filter(
+            transaction__in=month_txns
+        ).values(
+            'product__id', 'product__name', 'product__sku'
+        ).annotate(
+            total_quantity=Sum('quantity'), 
+            total_sales=Sum('line_total')
+        ).order_by('-total_quantity')[:5]
+        
+        recent_txns = base_filter.order_by('-created_at')[:10].values(
+            'id', 'transaction_number', 'total_amount', 'created_at', 'created_by__full_name'
+        )
+        
         data = {
-            'today_sales': float(today_data['sales']), 'today_transactions': today_data['transactions'],
+            'today_sales': float(today_data['sales']), 
+            'today_transactions': today_data['transactions'],
             'today_profit': float(today_data['profit']),
-            'today_items_sold': TransactionItem.objects.filter(transaction__in=today_txns).aggregate(total=Sum('quantity'))['total'] or 0,
-            'week_sales': float(week_data['sales']), 'week_transactions': week_data['transactions'], 'week_profit': float(week_data['profit']),
-            'month_sales': float(month_data['sales']), 'month_transactions': month_data['transactions'], 'month_profit': float(month_data['profit']),
-            'total_products': total_products, 'low_stock_count': low_stock_count, 'out_of_stock_count': out_of_stock_count,
-            'inventory_value': float(inventory_value), 'pending_alerts': LowStockAlert.objects.filter(status='PENDING').count(),
-            'top_products': list(top_products), 'recent_transactions': list(recent_txns)
+            'today_items_sold': TransactionItem.objects.filter(
+                transaction__in=today_txns
+            ).aggregate(total=Sum('quantity'))['total'] or 0,
+            'week_sales': float(week_data['sales']), 
+            'week_transactions': week_data['transactions'], 
+            'week_profit': float(week_data['profit']),
+            'month_sales': float(month_data['sales']), 
+            'month_transactions': month_data['transactions'], 
+            'month_profit': float(month_data['profit']),
+            'total_products': total_products, 
+            'low_stock_count': low_stock_count, 
+            'out_of_stock_count': out_of_stock_count,
+            'inventory_value': float(inventory_value), 
+            'pending_alerts': LowStockAlert.objects.filter(status='PENDING').count(),
+            'top_products': list(top_products), 
+            'recent_transactions': list(recent_txns)
         }
+        
         return Response(DashboardOverviewSerializer(data).data)
 
 
@@ -303,10 +349,6 @@ class ReportExportListView(generics.ListAPIView):
         return ReportExport.objects.filter(created_by=self.request.user).order_by('-created_at')
 
 
-# ==========================================
-# ✅ NEW SIMPLE EXPORT VIEW (GUARANTEED TO WORK!)
-# ==========================================
-
 class SimpleReportExport(View):
     """Simple function-based export that definitely works"""
     
@@ -416,7 +458,7 @@ class SimpleReportExport(View):
                 created_at__date__gte=start_date,
                 created_at__date__lte=end_date,
                 status__in=['COMPLETED', 'PAID', 'Completed', 'Paid']
-            ).select_related('created_by')[:50]  # Limit to 50 for performance
+            ).select_related('created_by')[:50]
             
             data = [['Date', 'Transaction #', 'Cashier', 'Total Amount', 'Payment']]
             for trans in transactions:

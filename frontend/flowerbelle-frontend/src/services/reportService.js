@@ -5,8 +5,20 @@ const reportService = {
   // ============================
   // DASHBOARD
   // ============================
-  getDashboard: (params = {}) =>
-    api.get('/reports/dashboard/', { params }),
+  getDashboard: async (params = {}) => {
+    console.log('🔍 [reportService] Fetching dashboard data...');
+    try {
+      const response = await api.get('/reports/dashboard/', { params });
+      console.log('✅ [reportService] Dashboard response received:', response.data);
+      console.log('📊 Today Sales:', response.data.today_sales);
+      console.log('📊 Today Transactions:', response.data.today_transactions);
+      console.log('📊 Week Sales:', response.data.week_sales);
+      return response;
+    } catch (error) {
+      console.error('❌ [reportService] Dashboard fetch failed:', error);
+      throw error;
+    }
+  },
 
   getDashboardHistory: (params = {}) =>
     api.get('/reports/dashboard/history/', { params }),

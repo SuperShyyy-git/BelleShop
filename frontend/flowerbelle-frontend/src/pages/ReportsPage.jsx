@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import reportService from '../services/reportService'; 
 import inventoryService from '../services/inventoryService'; 
 import { useTheme } from '../contexts/ThemeContext'; 
-import { DollarSign, Download, Package, Loader2, TrendingUp, CreditCard, Activity, BarChart2 } from 'lucide-react';
+import { DollarSign, Download, Package, Loader2, TrendingUp, CreditCard, Activity, BarChart2, Banknote } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import toast from 'react-hot-toast';
 
@@ -173,12 +173,12 @@ const ReportsPage = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white dark:bg-[#1A1A1D] p-4 shadow-xl rounded-xl border border-gray-100 dark:border-[#FF69B4]/20 min-w-[150px]">
-          <p className={`text-xs font-bold ${THEME.primaryText} uppercase mb-2 tracking-wide`}>{label}</p>
+        <div className="bg-white dark:bg-[#1A1A1D] p-3 sm:p-4 shadow-xl rounded-xl border border-gray-100 dark:border-[#FF69B4]/20 min-w-[120px] sm:min-w-[150px]">
+          <p className={`text-[10px] sm:text-xs font-bold ${THEME.primaryText} uppercase mb-1 sm:mb-2 tracking-wide`}>{label}</p>
           {payload.map((entry, index) => (
-            <div key={index} className="flex items-center justify-between gap-4 text-sm mb-1 last:mb-0">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || '#FF69B4' }} />
+            <div key={index} className="flex items-center justify-between gap-2 sm:gap-4 text-xs sm:text-sm mb-1 last:mb-0">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{ backgroundColor: entry.color || '#FF69B4' }} />
                 <span className="text-gray-600 dark:text-gray-400 font-medium">{entry.name}</span>
               </div>
               <span className="font-bold text-gray-900 dark:text-white">
@@ -196,31 +196,31 @@ const ReportsPage = () => {
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${THEME.pageBg}`}>
-        <Loader2 className={`animate-spin w-10 h-10 ${THEME.primaryText}`}/>
+        <Loader2 className={`animate-spin w-8 h-8 sm:w-10 sm:h-10 ${THEME.primaryText}`}/>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${THEME.pageBg} p-4 sm:p-6 lg:p-8 transition-colors duration-200`}>
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className={`min-h-screen ${THEME.pageBg} p-3 sm:p-4 md:p-6 lg:p-8 transition-colors duration-200`}>
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between gap-6 items-center">
-          <div className="text-center md:text-left">
-            <h1 className={`text-4xl font-extrabold flex items-center gap-3 justify-center md:justify-start ${THEME.gradientText}`}>
-              <TrendingUp className="w-8 h-8 text-[#FF69B4]" strokeWidth={2.5} /> Analytics Dashboard
+        <div className="flex flex-col md:flex-row justify-between gap-4 sm:gap-6 items-center">
+          <div className="text-center md:text-left w-full md:w-auto">
+            <h1 className={`text-2xl sm:text-3xl md:text-4xl font-extrabold flex items-center gap-2 sm:gap-3 justify-center md:justify-start ${THEME.gradientText}`}>
+              <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-[#FF69B4]" strokeWidth={2.5} /> Analytics Dashboard
             </h1>
-            <p className={`text-lg ${THEME.subText} mt-1 ml-1`}>Overview of your sales performance and inventory</p>
+            <p className={`text-sm sm:text-base md:text-lg ${THEME.subText} mt-1 ml-0 md:ml-1`}>Overview of your sales performance and inventory</p>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <div className={`p-1 rounded-xl flex shadow-sm ${THEME.cardBase}`}>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full md:w-auto">
+            <div className={`p-1 rounded-xl flex shadow-sm ${THEME.cardBase} w-full sm:w-auto overflow-x-auto`}>
               {periodOptions.map((p) => (
                 <button 
                   key={p.value} 
                   onClick={() => setPeriod(p.value)} 
-                  className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide transition-all ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap ${
                     period === p.value 
                       ? `${THEME.gradientBg} text-white shadow-md` 
                       : THEME.buttonGhost
@@ -233,55 +233,55 @@ const ReportsPage = () => {
             <button
               onClick={handleExport}
               disabled={exporting}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm shadow-md disabled:opacity-50 transition-all ${THEME.buttonPrimary}`}
+              className={`flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md disabled:opacity-50 transition-all w-full sm:w-auto ${THEME.buttonPrimary}`}
             >
-              {exporting ? <Loader2 className="animate-spin w-4 h-4" /> : <Download className="w-4 h-4" />}
+              {exporting ? <Loader2 className="animate-spin w-3 h-3 sm:w-4 sm:h-4" /> : <Download className="w-3 h-3 sm:w-4 sm:h-4" />}
               <span>Export PDF</span>
             </button>
           </div>
         </div>
 
         {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           
           {/* Sales Performance Chart */}
-          <div className={`lg:col-span-2 p-7 rounded-3xl flex flex-col h-[600px] ${THEME.cardBase}`}>
-            <div className="flex items-center justify-between mb-8">
+          <div className={`lg:col-span-2 p-4 sm:p-5 md:p-7 rounded-2xl sm:rounded-3xl flex flex-col h-[500px] sm:h-[550px] md:h-[600px] ${THEME.cardBase}`}>
+            <div className="flex items-center justify-between mb-4 sm:mb-6 md:mb-8">
               <div>
-                <h3 className={`text-xl font-bold flex items-center gap-2 ${THEME.headingText}`}>
-                    <BarChart2 className="w-5 h-5 text-[#FF69B4]" /> Sales Performance
+                <h3 className={`text-base sm:text-lg md:text-xl font-bold flex items-center gap-2 ${THEME.headingText}`}>
+                    <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF69B4]" /> Sales Performance
                 </h3>
-                <p className={`text-sm ${THEME.subText}`}>Actual Revenue Trends</p>
+                <p className={`text-xs sm:text-sm ${THEME.subText}`}>Actual Revenue Trends</p>
               </div>
             </div>
 
             {/* Summary Metrics Grid */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 mb-4 sm:mb-6 md:mb-8">
               {/* Total Sales */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-[#FF69B4]/5 to-[#FF77A9]/10 border border-[#FF69B4]/20">
-                <div className="flex items-center gap-2 text-[#FF69B4] mb-1">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Total Sales</span>
+              <div className="p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#FF69B4]/5 to-[#FF77A9]/10 border border-[#FF69B4]/20">
+                <div className="flex items-center gap-1 sm:gap-2 text-[#FF69B4] mb-0.5 sm:mb-1">
+                  <Banknote className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-wider">Total Sales</span>
                 </div>
-                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>₱{summary.total.toLocaleString()}</p>
+                <p className={`text-base sm:text-xl md:text-2xl font-extrabold ${THEME.headingText}`}>₱{summary.total.toLocaleString()}</p>
               </div>
               
               {/* Transactions */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/10 dark:to-blue-800/10 border border-blue-100 dark:border-blue-800/30">
-                <div className="flex items-center gap-2 text-blue-500 dark:text-blue-400 mb-1">
-                  <CreditCard className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Transactions</span>
+              <div className="p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/10 dark:to-blue-800/10 border border-blue-100 dark:border-blue-800/30">
+                <div className="flex items-center gap-1 sm:gap-2 text-blue-500 dark:text-blue-400 mb-0.5 sm:mb-1">
+                  <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-wider">Transactions</span>
                 </div>
-                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{summary.transactions}</p>
+                <p className={`text-base sm:text-xl md:text-2xl font-extrabold ${THEME.headingText}`}>{summary.transactions}</p>
               </div>
               
               {/* Avg Order */}
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/10 dark:to-emerald-800/10 border border-emerald-100 dark:border-emerald-800/30">
-                <div className="flex items-center gap-2 text-emerald-500 dark:text-emerald-400 mb-1">
-                  <Activity className="w-4 h-4" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Avg. Order</span>
+              <div className="p-3 sm:p-4 md:p-5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/10 dark:to-emerald-800/10 border border-emerald-100 dark:border-emerald-800/30">
+                <div className="flex items-center gap-1 sm:gap-2 text-emerald-500 dark:text-emerald-400 mb-0.5 sm:mb-1">
+                  <Activity className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-wider">Avg. Order</span>
                 </div>
-                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>₱{summary.average.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
+                <p className={`text-base sm:text-xl md:text-2xl font-extrabold ${THEME.headingText}`}>₱{summary.average.toLocaleString(undefined, {maximumFractionDigits: 0})}</p>
               </div>
             </div>
 
@@ -299,28 +299,28 @@ const ReportsPage = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} strokeOpacity={0.5} />
                     <XAxis 
                         dataKey="displayDate" 
-                        tick={{ fill: chartColors.text, fontSize: 11, fontWeight: 500 }} 
+                        tick={{ fill: chartColors.text, fontSize: 9, fontWeight: 500 }} 
                         axisLine={false} 
                         tickLine={false} 
                         interval="preserveStartEnd" 
-                        minTickGap={30} 
+                        minTickGap={20} 
                         dy={10}
                     />
                     <YAxis 
-                        tick={{ fill: chartColors.text, fontSize: 11, fontWeight: 500 }} 
+                        tick={{ fill: chartColors.text, fontSize: 9, fontWeight: 500 }} 
                         axisLine={false} 
                         tickLine={false} 
                         tickFormatter={(val) => val >= 1000 ? `₱${(val/1000).toFixed(0)}k` : `₱${val}`}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }} />
-                    <Bar dataKey="total_sales" name="Sales" fill="url(#colorSales)" radius={[6, 6, 0, 0]} barSize={36} />
+                    <Bar dataKey="total_sales" name="Sales" fill="url(#colorSales)" radius={[6, 6, 0, 0]} barSize={24} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <div className="text-center opacity-50">
-                    <DollarSign className="w-16 h-16 mx-auto mb-3" />
-                    <p className="font-medium">No sales data found for this period</p>
+                    <DollarSign className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3" />
+                    <p className="font-medium text-xs sm:text-sm">No sales data found for this period</p>
                   </div>
                 </div>
               )}
@@ -328,12 +328,12 @@ const ReportsPage = () => {
           </div>
 
           {/* Top Products Chart */}
-          <div className={`lg:col-span-1 p-7 rounded-3xl flex flex-col h-[600px] ${THEME.cardBase}`}>
-            <div className="mb-6">
-              <h3 className={`text-xl font-bold flex items-center gap-2 ${THEME.headingText}`}>
-                  <Package className="w-5 h-5 text-[#FF69B4]" /> Top Products
+          <div className={`lg:col-span-1 p-4 sm:p-5 md:p-7 rounded-2xl sm:rounded-3xl flex flex-col h-[500px] sm:h-[550px] md:h-[600px] ${THEME.cardBase}`}>
+            <div className="mb-4 sm:mb-6">
+              <h3 className={`text-base sm:text-lg md:text-xl font-bold flex items-center gap-2 ${THEME.headingText}`}>
+                  <Package className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF69B4]" /> Top Products
               </h3>
-              <p className={`text-sm ${THEME.subText}`}>By volume quantity</p>
+              <p className={`text-xs sm:text-sm ${THEME.subText}`}>By volume quantity</p>
             </div>
             
             <div className="flex-1 min-h-0 w-full">
@@ -345,13 +345,13 @@ const ReportsPage = () => {
                     <YAxis 
                         dataKey="name" 
                         type="category" 
-                        width={90} 
-                        tick={{ fill: chartColors.text, fontSize: 11, fontWeight: 600 }} 
+                        width={70} 
+                        tick={{ fill: chartColors.text, fontSize: 9, fontWeight: 600 }} 
                         axisLine={false} 
                         tickLine={false}
                     />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                    <Bar dataKey="stock" name="Stock" radius={[0, 6, 6, 0]} barSize={32}>
+                    <Bar dataKey="stock" name="Stock" radius={[0, 6, 6, 0]} barSize={24}>
                       {inventoryData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#FF69B4' : '#FF77A9'} />
                       ))}
@@ -361,8 +361,8 @@ const ReportsPage = () => {
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-400">
                   <div className="text-center opacity-50">
-                    <Package className="w-16 h-16 mx-auto mb-3" />
-                    <p className="font-medium">No Products</p>
+                    <Package className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 mx-auto mb-2 sm:mb-3" />
+                    <p className="font-medium text-xs sm:text-sm">No Products</p>
                   </div>
                 </div>
               )}

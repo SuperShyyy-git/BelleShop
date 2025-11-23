@@ -9,38 +9,22 @@ import toast from 'react-hot-toast';
 
 // --- THEME CONSTANTS ---
 const THEME = {
-    // Text Colors
     primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
     headingText: "text-gray-900 dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
-    
-    // Gradients
     gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
     gradientBg: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9]",
-    
-    // Backgrounds
     pageBg: "bg-gradient-to-br from-white via-[#FFE4E1]/20 to-[#FF69B4]/10 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#2C1A21]",
-    
-    // Components
     cardBase: "bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#FF69B4]/20 shadow-lg shadow-[#FF69B4]/5 dark:shadow-black/20",
-    
-    // Buttons
     buttonPrimary: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200",
-    
-    // Table
     tableHeader: "bg-gray-50/50 dark:bg-[#1A1A1D]/50 border-b border-gray-200 dark:border-[#FF69B4]/10",
     tableRow: "hover:bg-[#FF69B4]/5 dark:hover:bg-[#FF69B4]/10 transition-colors duration-200 border-b border-gray-100 dark:border-gray-800/50 last:border-0"
 };
 
-// -----------------------------------------------------------------------------
-// USER MANAGEMENT PAGE
-// -----------------------------------------------------------------------------
 const UserManagementPage = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    // States for Modals/Editing
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentUser, setCurrentUser] = useState(null); 
 
@@ -89,7 +73,6 @@ const UserManagementPage = () => {
         const userTarget = users.find(u => u.id === userId);
         if (!userTarget) return;
 
-        // CASE 1: User is ACTIVE -> Deactivate
         if (userTarget.is_active) {
             if (!window.confirm(`Are you sure you want to DEACTIVATE user: ${userTarget.username}?`)) return;
 
@@ -102,9 +85,7 @@ const UserManagementPage = () => {
             } catch (error) {
                 toast.error('Failed to deactivate user.');
             }
-        } 
-        // CASE 2: User is INACTIVE -> Permanent Delete
-        else {
+        } else {
             if (!window.confirm(`⚠️ PERMANENT DELETE WARNING ⚠️\n\nAre you sure you want to permanently delete '${userTarget.username}'?`)) return;
 
             const loadingToast = toast.loading("Deleting user...");
@@ -147,34 +128,35 @@ const UserManagementPage = () => {
                 return 'bg-[#FF69B4]/10 text-[#FF69B4] dark:text-[#FF77A9] border-[#FF69B4]/30'; 
             case 'ADMIN':
                 return 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/50';
-            default: // STAFF
+            default:
                 return 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700';
         }
     };
 
-    // --- Rendering Logic ---
+    // --- Loading State ---
     if (loading) {
         return (
             <div className={`min-h-screen flex items-center justify-center ${THEME.pageBg}`}>
                 <div className="text-center">
-                    <Loader2 className={`w-12 h-12 ${THEME.primaryText} animate-spin mx-auto mb-4`} />
-                    <p className={`font-medium ${THEME.subText}`}>Loading users...</p>
+                    <Loader2 className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 ${THEME.primaryText} animate-spin mx-auto mb-3 sm:mb-4`} />
+                    <p className={`font-medium ${THEME.subText} text-sm sm:text-base`}>Loading users...</p>
                 </div>
             </div>
         );
     }
 
+    // --- Error State ---
     if (error) {
         return (
-            <div className={`min-h-screen p-6 ${THEME.pageBg}`}>
+            <div className={`min-h-screen p-3 sm:p-4 lg:p-6 ${THEME.pageBg}`}>
                 <div className="max-w-7xl mx-auto">
-                    <div className="bg-white dark:bg-[#1e1e1e] border-2 border-red-100 dark:border-red-900/30 rounded-3xl p-8 shadow-xl flex items-center gap-5">
-                        <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-800/50">
-                            <XCircle className="h-8 w-8 text-red-500" />
+                    <div className="bg-white dark:bg-[#1e1e1e] border-2 border-red-100 dark:border-red-900/30 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5">
+                        <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 rounded-xl sm:rounded-2xl border border-red-100 dark:border-red-800/50">
+                            <XCircle className="h-6 w-6 sm:h-8 sm:w-8 text-red-500" />
                         </div>
                         <div>
-                            <h3 className={`text-xl font-bold ${THEME.headingText}`}>Error Loading Users</h3>
-                            <p className="text-red-500 dark:text-red-400 font-medium mt-1">{error}</p>
+                            <h3 className={`text-lg sm:text-xl font-bold ${THEME.headingText}`}>Error Loading Users</h3>
+                            <p className="text-red-500 dark:text-red-400 font-medium mt-1 text-sm sm:text-base">{error}</p>
                         </div>
                     </div>
                 </div>
@@ -183,29 +165,114 @@ const UserManagementPage = () => {
     }
 
     return (
-        <div className={`min-h-screen ${THEME.pageBg} p-4 sm:p-6 lg:p-8 transition-colors duration-200`}>
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className={`min-h-screen ${THEME.pageBg} p-3 sm:p-4 lg:p-6 xl:p-8 transition-colors duration-200`}>
+            <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
                 
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:gap-4">
                     <div>
-                        <h1 className={`text-4xl font-extrabold flex items-center gap-3 ${THEME.gradientText}`}>
-                            <Users className={THEME.primaryText} size={32} strokeWidth={2.5} /> User Management
+                        <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold flex items-center gap-2 sm:gap-3 ${THEME.gradientText}`}>
+                            <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#FF69B4] dark:text-[#FF77A9]" strokeWidth={2.5} /> 
+                            <span className="leading-tight">User Management</span>
                         </h1>
-                        <p className={`text-lg ${THEME.subText} mt-1 ml-1`}>Manage system access, roles, and permissions.</p>
+                        <p className={`text-sm sm:text-base lg:text-lg ${THEME.subText} mt-1 ml-1`}>Manage system access, roles, and permissions.</p>
                     </div>
                     
                     <button 
                         onClick={handleAddUser}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all ${THEME.buttonPrimary}`}
+                        className={`flex items-center justify-center gap-2 px-4 sm:px-5 lg:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all w-full sm:w-auto ${THEME.buttonPrimary}`}
                     >
-                        <PlusCircle className="w-5 h-5" strokeWidth={2.5} />
+                        <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
                         Add New User
                     </button>
                 </div>
 
-                {/* Users Table Card */}
-                <div className={`rounded-3xl overflow-hidden ${THEME.cardBase}`}>
+                {/* Mobile Card View */}
+                <div className="block lg:hidden">
+                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                        {users.map((user) => (
+                            <div key={user.id} className={`${THEME.cardBase} rounded-xl sm:rounded-2xl p-4 sm:p-5 space-y-3 sm:space-y-4`}>
+                                {/* User Header */}
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner border ${
+                                            user.role === 'OWNER' ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800' : 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                        }`}>
+                                            <span className={`font-bold text-lg sm:text-xl ${user.role === 'OWNER' ? 'text-[#FF69B4]' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                {user.username.charAt(0).toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className={`font-bold text-sm sm:text-base ${THEME.headingText} truncate`}>{user.username}</div>
+                                            {user.email && <div className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 truncate">{user.email}</div>}
+                                            {user.full_name && <div className={`text-xs ${THEME.subText} truncate mt-0.5`}>{user.full_name}</div>}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-1.5 flex-shrink-0">
+                                        <button 
+                                            onClick={() => handleEditUser(user)}
+                                            className="p-2 rounded-lg sm:rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 hover:text-[#FF69B4] hover:bg-[#FF69B4]/10 transition-all"
+                                            title="Edit User"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => handleDeleteUser(user.id)}
+                                            className={`p-2 rounded-lg sm:rounded-xl transition-all ${
+                                                user.is_active 
+                                                    ? 'bg-gray-50 dark:bg-gray-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20' 
+                                                    : 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40'
+                                            }`}
+                                            title={user.is_active ? "Deactivate User" : "Permanently Delete User"}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* User Details */}
+                                <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                    {/* Role Badge */}
+                                    <span className={`px-2.5 sm:px-3 py-1 rounded-full border text-xs font-bold flex items-center gap-1.5 shadow-sm ${getRoleStyle(user.role)}`}>
+                                        {user.role === 'OWNER' ? <Shield size={12} /> : <UserCog size={12} />}
+                                        {user.role}
+                                    </span>
+                                    
+                                    {/* Status Badge */}
+                                    <span className={`px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 shadow-sm ${
+                                        user.is_active 
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' 
+                                            : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50'
+                                    }`}>
+                                        {user.is_active ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
+                                        {user.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {users.length === 0 && (
+                            <div className="text-center py-12 sm:py-16">
+                                <div className={`${THEME.cardBase} rounded-2xl p-6 sm:p-8`}>
+                                    <Users className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${THEME.subText} opacity-50`} />
+                                    <h3 className={`text-lg sm:text-xl font-bold mb-1 sm:mb-2 ${THEME.headingText}`}>No users found</h3>
+                                    <p 
+                                        className={`${THEME.subText} cursor-pointer hover:text-[#FF69B4] transition-colors text-sm sm:text-base`} 
+                                        onClick={handleAddUser}
+                                    >
+                                        Create your first user
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Desktop Table View */}
+                <div className={`hidden lg:block rounded-3xl overflow-hidden ${THEME.cardBase}`}>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className={THEME.tableHeader}>
