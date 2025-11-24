@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Wallet, Smartphone, Banknote, Receipt, User, Phone, FileText, AlertCircle, Loader2, Printer } from 'lucide-react';
+import { X, Banknote, Receipt, User, Phone, FileText, AlertCircle, Loader2 } from 'lucide-react';
 
 // --- THEME CONSTANTS ---
 const THEME = {
@@ -18,28 +18,52 @@ const THEME = {
 };
 
 const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [amountPaid, setAmountPaid] = useState('');
-  const [paymentReference, setPaymentReference] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
-  const [countdown, setCountdown] = useState(null);
+  const [phoneError, setPhoneError] = useState('');
 
-  const paymentMethods = [
-    { value: 'CASH', label: 'Cash', icon: Banknote },
-    { value: 'GCASH', label: 'GCash', icon: Smartphone },
-    { value: 'PAYMAYA', label: 'PayMaya', icon: Wallet },
-  ];
-
-  const isPaymentAmountValid = paymentMethod === 'CASH' ? (amountPaid && parseFloat(amountPaid) >= totals.total) : true;
-  const isReferenceValid = paymentMethod !== 'CASH' ? paymentReference.trim() !== '' : true;
-  const isCustomerValid = customerName.trim() !== '' && customerPhone.trim() !== '' && notes.trim() !== '';
-  const isFormValid = isPaymentAmountValid && isReferenceValid && isCustomerValid;
+  const isPaymentAmountValid = amountPaid && parseFloat(amountPaid) >= totals.total;
+  const isPhoneValid = /^09\d{9}$/.test(customerPhone);
+  const isCustomerValid = customerName.trim() !== '' && isPhoneValid && notes.trim() !== '';
+  const isFormValid = isPaymentAmountValid && isCustomerValid;
 
   const change = amountPaid ? (parseFloat(amountPaid) - totals.total) : 0;
+
+  const handlePhoneChange = (e) => {
+    let value = e.target.value;
+    
+    // Remove all non-digit characters
+    const cleaned = value.replace(/\D/g, '');
+    
+    // Limit to 11 digits and ensure it starts with 09
+    if (cleaned.length > 0) {
+      if (cleaned.startsWith('09')) {
+        value = cleaned.substring(0, 11);
+      } else if (cleaned.startsWith('9')) {
+        value = '0' + cleaned.substring(0, 10);
+      } else if (cleaned.startsWith('0')) {
+        value = cleaned.substring(0, 11);
+      } else {
+        value = '09' + cleaned.substring(0, 9);
+      }
+    } else {
+      value = '';
+    }
+    
+    setCustomerPhone(value);
+    
+    // Validate phone format: 09XXXXXXXXX (11 digits total)
+    const regex = /^09\d{9}$/;
+    if (value && !regex.test(value)) {
+      setPhoneError('Format: 09XXXXXXXXX (11 digits, e.g., 09175550123)');
+    } else {
+      setPhoneError('');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,9 +78,9 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
         unit_price: item.unit_price,
         discount: 0
       })),
-      payment_method: paymentMethod,
-      amount_paid: paymentMethod === 'CASH' ? parseFloat(amountPaid) : totals.total,
-      payment_reference: paymentReference,
+      payment_method: 'CASH',
+      amount_paid: parseFloat(amountPaid),
+      payment_reference: '',
       customer_name: customerName,
       customer_phone: customerPhone,
       notes: notes,
@@ -74,7 +98,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
       ...checkoutData,
       transactionId: 'TRX' + Date.now(),
       timestamp: new Date(),
-      change: paymentMethod === 'CASH' ? change : 0
+      change: change
     };
     
     setReceiptData(receipt);
@@ -91,42 +115,20 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
   };
 
   const resetForm = () => {
-    setPaymentMethod('CASH');
     setAmountPaid('');
-    setPaymentReference('');
     setCustomerName('');
     setCustomerPhone('');
     setNotes('');
+    setPhoneError('');
   };
 
   const closeReceipt = () => {
     setReceiptData(null);
-    setCountdown(null);
     resetForm();
     onClose();
   };
 
-  React.useEffect(() => {
-    if (receiptData && countdown === null) {
-      setCountdown(30);
-    }
-  }, [receiptData, countdown]);
-
-  React.useEffect(() => {
-    if (countdown === null || countdown <= 0) return;
-    
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [countdown]);
-
   const handleQuickAmount = (amount) => setAmountPaid(amount.toString());
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   if (!isOpen) return null;
 
@@ -162,9 +164,9 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
             
             {/* Store Info */}
             <div className="text-center pb-6 border-b border-gray-200 dark:border-gray-800">
-              <p className="text-sm font-bold text-gray-600 dark:text-gray-400">YOUR STORE NAME</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Store Address Here</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500">Contact: 09XX-XXX-XXXX</p>
+              <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Flowerbelle Flowershop</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Malamig, Bustos, Philippines</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500">0950 373 9003</p>
             </div>
 
             {/* Date & Transaction Info */}
@@ -186,7 +188,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
             {/* Customer Info */}
             <div className="p-4 bg-gray-50 dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-gray-800 space-y-2 text-sm">
               <div className="font-bold text-gray-900 dark:text-white">{receiptData.customer_name}</div>
-              <div className="text-gray-600 dark:text-gray-400">Ph: {receiptData.customer_phone}</div>
+              <div className="text-gray-600 dark:text-gray-400">{receiptData.customer_phone}</div>
             </div>
 
             {/* Items Table */}
@@ -232,24 +234,16 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
             <div className="p-4 bg-gray-50 dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-gray-800 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Payment Method:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{receiptData.payment_method}</span>
+                <span className="font-semibold text-gray-900 dark:text-white">CASH</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Amount Paid:</span>
                 <span className="font-semibold text-gray-900 dark:text-white">₱{receiptData.amount_paid.toFixed(2)}</span>
               </div>
-              {receiptData.payment_method === 'CASH' && (
-                <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-gray-700">
-                  <span className="text-gray-600 dark:text-gray-400">Change:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">₱{receiptData.change.toFixed(2)}</span>
-                </div>
-              )}
-              {receiptData.payment_reference && (
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Ref #:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{receiptData.payment_reference}</span>
-                </div>
-              )}
+              <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-400">Change:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">₱{receiptData.change.toFixed(2)}</span>
+              </div>
             </div>
 
             {/* Notes */}
@@ -270,18 +264,10 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
           {/* Receipt Actions */}
           <div className="p-6 border-t border-gray-200 dark:border-[#FF69B4]/10 bg-white dark:bg-[#1e1e1e] flex gap-3 shrink-0">
             <button
-              onClick={handlePrint}
-              className="flex-1 py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all flex items-center justify-center gap-2"
-            >
-              <Printer className="w-5 h-5" />
-              Print
-            </button>
-            <button
               onClick={closeReceipt}
-              disabled={countdown === null}
               className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${THEME.buttonPrimary}`}
             >
-              <span>Auto Close ({countdown}s)</span>
+              <span>Close Receipt</span>
             </button>
           </div>
         </div>
@@ -332,103 +318,67 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
                </div>
             </div>
 
-            {/* Payment Method Grid */}
+            {/* Payment Method Display */}
             <div>
-              <label className={labelClass}>Select Payment Method <span className="text-[#FF69B4]">*</span></label>
-              <div className="grid grid-cols-3 gap-4">
-                {paymentMethods.map((method) => {
-                  const Icon = method.icon;
-                  const isSelected = paymentMethod === method.value;
-                  return (
-                    <button
-                      key={method.value}
-                      type="button"
-                      onClick={() => setPaymentMethod(method.value)}
-                      disabled={isProcessing}
-                      className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all duration-200 ${
-                        isSelected
-                          ? 'bg-[#FF69B4] border-[#FF69B4] text-white shadow-lg shadow-[#FF69B4]/30 transform scale-105'
-                          : 'bg-white dark:bg-[#1A1A1D] border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-[#FF69B4]/50 dark:hover:border-[#FF69B4]/50'
-                      }`}
-                    >
-                      <Icon className={`w-6 h-6 mb-2 ${isSelected ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
-                      <span className="text-xs font-bold">{method.label}</span>
-                    </button>
-                  );
-                })}
+              <label className={labelClass}>Payment Method</label>
+              <div className="flex items-center gap-3 p-4 rounded-2xl border-2 bg-[#FF69B4] border-[#FF69B4] text-white shadow-lg shadow-[#FF69B4]/30">
+                <Banknote className="w-6 h-6" />
+                <span className="text-lg font-bold">Cash Payment</span>
               </div>
             </div>
 
-            {/* Cash Logic */}
-            {paymentMethod === 'CASH' && (
-              <div className="space-y-4 p-6 rounded-2xl bg-gray-50 dark:bg-[#1A1A1D] border border-gray-200 dark:border-[#FF69B4]/10">
-                <div>
-                  <label className={labelClass}>Amount Paid <span className="text-[#FF69B4]">*</span></label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">₱</span>
-                    <input
-                      type="number"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(e.target.value)}
-                      step="0.01"
-                      min={totals.total}
-                      className={`${THEME.inputBase} pl-10 text-xl font-bold tracking-wide`}
-                      placeholder="0.00"
-                      required
-                      disabled={isProcessing}
-                      autoFocus
-                    />
-                  </div>
+            {/* Cash Amount Input */}
+            <div className="space-y-4 p-6 rounded-2xl bg-gray-50 dark:bg-[#1A1A1D] border border-gray-200 dark:border-[#FF69B4]/10">
+              <div>
+                <label className={labelClass}>Amount Paid <span className="text-[#FF69B4]">*</span></label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">₱</span>
+                  <input
+                    type="number"
+                    value={amountPaid}
+                    onChange={(e) => setAmountPaid(e.target.value)}
+                    step="0.01"
+                    min={totals.total}
+                    className={`${THEME.inputBase} pl-10 text-xl font-bold tracking-wide`}
+                    placeholder="0.00"
+                    required
+                    disabled={isProcessing}
+                    autoFocus
+                  />
                 </div>
+              </div>
 
-                {/* Quick Amount Buttons */}
-                <div className="flex flex-wrap gap-2">
-                  {[100, 500, 1000].map((amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      onClick={() => handleQuickAmount(amount)}
-                      disabled={isProcessing}
-                      className="px-4 py-2 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl text-xs font-bold hover:border-[#FF69B4] hover:text-[#FF69B4] dark:hover:text-[#FF77A9] dark:hover:border-[#FF77A9] transition-all shadow-sm"
-                    >
-                      ₱{amount}
-                    </button>
-                  ))}
+              {/* Quick Amount Buttons */}
+              <div className="flex flex-wrap gap-2">
+                {[100, 500, 1000].map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => handleQuickAmount(amount)}
+                    disabled={isProcessing}
+                    className="px-4 py-2 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 rounded-xl text-xs font-bold hover:border-[#FF69B4] hover:text-[#FF69B4] dark:hover:text-[#FF77A9] dark:hover:border-[#FF77A9] transition-all shadow-sm"
+                  >
+                    ₱{amount}
+                  </button>
+                ))}
+              </div>
+
+              {/* Change Display */}
+              {amountPaid && (
+                <div className={`mt-2 p-4 rounded-xl flex justify-between items-center border-2 ${
+                  change >= 0 
+                    ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' 
+                    : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'
+                }`}>
+                  <span className={`text-sm font-bold ${change >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                    {change >= 0 ? 'Change:' : 'Insufficient Amount:'}
+                  </span>
+                  <span className={`text-2xl font-extrabold ${change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                    ₱{Math.abs(change).toFixed(2)}
+                  </span>
                 </div>
-
-                {/* Change Display */}
-                {amountPaid && (
-                  <div className={`mt-2 p-4 rounded-xl flex justify-between items-center border-2 ${
-                    change >= 0 
-                      ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-900/30' 
-                      : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'
-                  }`}>
-                    <span className={`text-sm font-bold ${change >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                      {change >= 0 ? 'Change:' : 'Insufficient Amount:'}
-                    </span>
-                    <span className={`text-2xl font-extrabold ${change >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      ₱{Math.abs(change).toFixed(2)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Digital Payment Reference */}
-            {paymentMethod !== 'CASH' && (
-              <div className="p-6 rounded-2xl bg-gray-50 dark:bg-[#1A1A1D] border border-gray-200 dark:border-[#FF69B4]/10">
-                <label className={labelClass}>Reference Number <span className="text-[#FF69B4]">*</span></label>
-                <input
-                  type="text"
-                  value={paymentReference}
-                  onChange={(e) => setPaymentReference(e.target.value)}
-                  className={THEME.inputBase}
-                  placeholder="Enter transaction reference ID"
-                  required
-                  disabled={isProcessing}
-                />
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* RIGHT COLUMN: Customer Info (REQUIRED) */}
@@ -462,12 +412,19 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
                <input
                  type="tel"
                  value={customerPhone}
-                 onChange={(e) => setCustomerPhone(e.target.value)}
-                 className={THEME.inputBase}
-                 placeholder="Contact Number"
+                 onChange={handlePhoneChange}
+                 className={`${THEME.inputBase} ${phoneError ? 'border-red-500 dark:border-red-500' : ''}`}
+                 placeholder=""
                  required
                  disabled={isProcessing}
                />
+               {phoneError && (
+                 <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                   <AlertCircle size={12} />
+                   {phoneError}
+                 </p>
+               )}
+
             </div>
 
             <div className="flex-1">

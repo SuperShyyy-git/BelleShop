@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import inventoryService from '../services/inventoryService';
 import posService from '../services/posService';
-import { Package, Search, ShoppingCart, Trash2, Plus, Minus, X, Receipt } from 'lucide-react';
+import { Package, Search, ShoppingCart, Trash2, Plus, Minus, X, ShoppingBagIcon } from 'lucide-react';
 import Loading from '../components/common/Loading';
 import CheckoutModal from '../components/pos/CheckoutModal';
 import toast from 'react-hot-toast';
@@ -334,7 +334,7 @@ const POSPage = () => {
                 <div className="bg-white/80 dark:bg-[#1e1e1e]/90 backdrop-blur-md p-3 sm:p-4 lg:p-6 shadow-sm border-b border-gray-200 dark:border-gray-800 z-10">
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                         <h2 className={`text-xl sm:text-2xl lg:text-3xl font-extrabold flex items-center gap-2 sm:gap-3 ${THEME.gradientText}`}>
-                            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-[#FF69B4]" /> Point of Sale
+                            <ShoppingBagIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-[#FF69B4]" /> Point of Sale
                         </h2>
                         
                         {/* Mobile Cart Button */}

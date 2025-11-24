@@ -261,7 +261,7 @@ const InventoryPage = () => {
                             >
                                 <tab.icon className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]" /> 
                                 <span className="hidden xs:inline">{tab.label}</span>
-                                <span className="xs:hidden">{tab.id === 'products' ? 'Prod' : tab.id === 'categories' ? 'Cat' : 'Sup'}</span>
+                                <span className="xs:hidden">{tab.id === 'products' ? 'Products' : tab.id === 'categories' ? 'Categories' : 'Suppliers'}</span>
                                 <span className="text-[10px] sm:text-xs opacity-80 font-normal">({tab.count})</span>
                             </button>
                         ))}
