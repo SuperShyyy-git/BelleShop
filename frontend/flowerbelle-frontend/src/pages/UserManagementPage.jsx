@@ -277,8 +277,8 @@ const UserManagementPage = () => {
                         <table className="w-full text-left">
                             <thead className={THEME.tableHeader}>
                                 <tr>
-                                    <th className={`p-5 text-xs font-bold uppercase tracking-wider ${THEME.subText}`}>User</th>
-                                    <th className={`p-5 text-xs font-bold uppercase tracking-wider ${THEME.subText}`}>Full Name</th>
+                                    <th className={`p-5 text-xs font-bold uppercase tracking-wider ${THEME.subText}`}>Username</th>
+                                    <th className={`p-5 text-xs font-bold uppercase tracking-wider ${THEME.subText}`}>Name</th>
                                     <th className={`p-5 text-xs font-bold uppercase tracking-wider ${THEME.subText}`}>Role</th>
                                     <th className={`p-5 text-xs font-bold uppercase tracking-wider ${THEME.subText}`}>Status</th>
                                     <th className={`p-5 text-xs font-bold uppercase tracking-wider text-center ${THEME.subText}`}>Actions</th>
