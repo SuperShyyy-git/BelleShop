@@ -43,6 +43,7 @@ const ProfilePage = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
 
     // --- 1. Fetch Current User Data ---
     const fetchUserData = async () => {
@@ -76,6 +77,39 @@ const ProfilePage = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // --- 2b. Handle Phone Number Changes with Validation ---
+    const handlePhoneChange = (e) => {
+        let value = e.target.value;
+        
+        // Remove all non-digit characters
+        const cleaned = value.replace(/\D/g, '');
+        
+        // Limit to 11 digits and ensure it starts with 09
+        if (cleaned.length > 0) {
+            if (cleaned.startsWith('09')) {
+                value = cleaned.substring(0, 11);
+            } else if (cleaned.startsWith('9')) {
+                value = '0' + cleaned.substring(0, 10);
+            } else if (cleaned.startsWith('0')) {
+                value = cleaned.substring(0, 11);
+            } else {
+                value = '09' + cleaned.substring(0, 9);
+            }
+        } else {
+            value = '';
+        }
+        
+        setFormData(prev => ({ ...prev, phone_number: value }));
+        
+        // Validate phone format: 09XXXXXXXXX (11 digits total)
+        const regex = /^09\d{9}$/;
+        if (value && !regex.test(value)) {
+            setPhoneError('Format: 09XXXXXXXXX (11 digits, e.g., 09175550123)');
+        } else {
+            setPhoneError('');
+        }
     };
 
     // --- 3. Handle Form Submission ---
@@ -226,13 +260,19 @@ const ProfilePage = () => {
                                 </label>
                                 <input
                                     id="phone_number"
-                                    name="phone_number" // Keep this name for state management
+                                    name="phone_number"
                                     type="tel"
                                     value={formData.phone_number}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${THEME.inputBase}`}
-                                    placeholder="e.g., +63 912 345 6789"
+                                    onChange={handlePhoneChange}
+                                    className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${THEME.inputBase} ${phoneError ? 'border-red-500 dark:border-red-500' : ''}`}
+                                    placeholder=""
                                 />
+                                {phoneError && (
+                                    <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                                        <AlertCircle size={12} />
+                                        {phoneError}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Password Section */}
@@ -341,7 +381,7 @@ const ProfilePage = () => {
                                 <div>
                                     <h4 className="text-sm font-bold text-sky-900 dark:text-sky-200 mb-1">Security Tip</h4>
                                     <p className="text-xs text-sky-700 dark:text-sky-300 leading-relaxed font-medium">
-                                        Change your password regularly and never share it with anyone. Use a strong password with a mix of letters, numbers, and symbols.
+                                         Your password is your personal key to access the system. Never share it with anyone. 
                                     </p>
                                 </div>
                             </div>
@@ -350,7 +390,7 @@ const ProfilePage = () => {
                         {/* Logout Button */}
                         <button
                             onClick={() => setShowLogoutModal(true)}
-                            className="w-full px-6 py-4 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-3xl font-bold flex items-center justify-center gap-2 border-2 border-red-200 dark:border-red-800/30 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/10"
+                            className="w-full px-6 py-4 bg-[#FF69B4]/10 dark:bg-[#FF69B4]/5 hover:bg-[#FF69B4]/20 dark:hover:bg-[#FF69B4]/10 text-[#FF69B4] dark:text-[#FF77A9] rounded-3xl font-bold flex items-center justify-center gap-2 border-2 border-[#FF69B4]/30 dark:border-[#FF69B4]/20 transition-all duration-200 hover:shadow-lg hover:shadow-[#FF69B4]/20"
                         >
                             <LogOut className="w-5 h-5" />
                             Log Out
@@ -364,7 +404,7 @@ const ProfilePage = () => {
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className={`w-full max-w-md rounded-3xl ${THEME.cardBase} overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200`}>
                         {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
+                        <div className={`p-6 text-white ${THEME.gradientBg}`}>
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                                     <LogOut className="w-6 h-6" />
@@ -386,13 +426,13 @@ const ProfilePage = () => {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowLogoutModal(false)}
-                                    className="flex-1 px-6 py-3 bg-gray-100 dark:bg-[#1A1A1D] hover:bg-gray-200 dark:hover:bg-[#252525] text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-all duration-200"
+                                    className="flex-1 px-6 py-3 border-2 border-[#FF69B4] dark:border-[#FF69B4]/50 text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/5 dark:hover:bg-[#FF69B4]/10 rounded-xl font-bold transition-all duration-200"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transition-all duration-200"
+                                    className={`flex-1 px-6 py-3 rounded-xl font-bold text-white flex items-center justify-center gap-2 ${THEME.buttonPrimary}`}
                                 >
                                     <LogOut className="w-4 h-4" />
                                     Logout

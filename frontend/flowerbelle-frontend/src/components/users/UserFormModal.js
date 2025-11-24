@@ -29,6 +29,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [phoneError, setPhoneError] = useState('');
 
     // 2. Load existing user data when editing
     useEffect(() => {
@@ -67,6 +68,39 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
             ...prev,
             [name]: type === 'checkbox' ? checked : value,
         }));
+    };
+
+    // 3b. Handle phone number changes with validation
+    const handlePhoneChange = (e) => {
+        let value = e.target.value;
+        
+        // Remove all non-digit characters
+        const cleaned = value.replace(/\D/g, '');
+        
+        // Limit to 11 digits and ensure it starts with 09
+        if (cleaned.length > 0) {
+            if (cleaned.startsWith('09')) {
+                value = cleaned.substring(0, 11);
+            } else if (cleaned.startsWith('9')) {
+                value = '0' + cleaned.substring(0, 10);
+            } else if (cleaned.startsWith('0')) {
+                value = cleaned.substring(0, 11);
+            } else {
+                value = '09' + cleaned.substring(0, 9);
+            }
+        } else {
+            value = '';
+        }
+        
+        setFormData(prev => ({ ...prev, phone_number: value }));
+        
+        // Validate phone format: 09XXXXXXXXX (11 digits total)
+        const regex = /^09\d{9}$/;
+        if (value && !regex.test(value)) {
+            setPhoneError('Format: 09XXXXXXXXX (11 digits, e.g., 09175550123)');
+        } else {
+            setPhoneError('');
+        }
     };
 
     // 4. Handle redirect to profile
@@ -233,11 +267,17 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                 name="phone_number"
                                 type="tel"
                                 value={formData.phone_number}
-                                onChange={handleChange}
-                                className={inputClass}
+                                onChange={handlePhoneChange}
+                                className={`${inputClass} ${phoneError ? 'border-red-500 dark:border-red-500' : ''}`}
                                 disabled={isEditingSelf}
                                 placeholder=""
                             />
+                            {phoneError && (
+                                <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                                    <AlertCircle size={12} />
+                                    {phoneError}
+                                </p>
+                            )}
                         </div>
                     </div>
 
