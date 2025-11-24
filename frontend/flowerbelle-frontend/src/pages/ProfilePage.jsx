@@ -46,44 +46,19 @@ const ProfilePage = () => {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [phoneError, setPhoneError] = useState('');
 
-    // --- Password Validation ---
-    const validatePassword = (pwd) => {
-        if (!pwd) return { valid: true, error: '' };
-        
-        // Check for special characters
-        const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd);
-        if (hasSpecialChar) {
-            return { valid: false, error: 'Password cannot contain special characters' };
-        }
-        
-        // Check minimum length
-        if (pwd.length < 8) {
-            return { valid: false, error: 'Password must be at least 8 characters' };
-        }
-        
-        return { valid: true, error: '' };
+    // --- Password Requirements Check ---
+    const checkPasswordRequirements = (pwd) => {
+        return {
+            minLength: pwd.length >= 8,
+            hasUppercase: /[A-Z]/.test(pwd),
+            hasLowercase: /[a-z]/.test(pwd),
+            hasNumber: /[0-9]/.test(pwd),
+        };
     };
 
-    // --- Check if passwords match and are valid ---
-    const getPasswordStatus = () => {
-        if (!formData.password && !formData.password_confirm) {
-            return { status: 'idle', message: '' };
-        }
-        
-        const validation = validatePassword(formData.password);
-        if (!validation.valid) {
-            return { status: 'error', message: validation.error };
-        }
-        
-        if (formData.password !== formData.password_confirm) {
-            return { status: 'mismatch', message: 'Passwords do not match' };
-        }
-        
-        if (formData.password && formData.password_confirm && formData.password === formData.password_confirm) {
-            return { status: 'match', message: 'Passwords match' };
-        }
-        
-        return { status: 'idle', message: '' };
+    const allRequirementsMet = (pwd) => {
+        const reqs = checkPasswordRequirements(pwd);
+        return reqs.minLength && reqs.hasUppercase && reqs.hasLowercase && reqs.hasNumber;
     };
 
     // --- 1. Fetch Current User Data ---
@@ -154,11 +129,10 @@ const ProfilePage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Check password validation
+        // Check password validation only on submit
         if (formData.password || formData.password_confirm) {
-            const validation = validatePassword(formData.password);
-            if (!validation.valid) {
-                toast.error(validation.error);
+            if (!allRequirementsMet(formData.password)) {
+                toast.error("Password does not meet all requirements.");
                 return;
             }
             
@@ -213,7 +187,6 @@ const ProfilePage = () => {
     }
     
     const labelClass = `flex items-center gap-2 text-sm font-bold ${THEME.subText} mb-2 uppercase tracking-wide`;
-    const passwordStatus = getPasswordStatus();
     
     return (
         <div className={`min-h-screen ${THEME.pageBg} p-4 sm:p-6 lg:p-8 transition-colors duration-200`}>
@@ -284,8 +257,8 @@ const ProfilePage = () => {
                                     Name <span className="text-[#FF69B4]">*</span>
                                 </label>
                                 <input
-                                    id="Name"
-                                    name="Name"
+                                    id="full_name"
+                                    name="full_name"
                                     type="text"
                                     value={formData.full_name}
                                     onChange={handleChange}
@@ -326,7 +299,7 @@ const ProfilePage = () => {
                                     value={formData.phone_number}
                                     onChange={handlePhoneChange}
                                     className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${THEME.inputBase} ${phoneError ? 'border-red-500 dark:border-red-500' : ''}`}
-                                    placeholder=""
+                                    placeholder="09175550123"
                                 />
                                 {phoneError && (
                                     <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
@@ -341,9 +314,9 @@ const ProfilePage = () => {
                                 <h3 className={`font-bold text-sm mb-4 flex items-center gap-2 border-b border-gray-200 dark:border-[#FF69B4]/10 pb-2 ${THEME.headingText}`}>
                                     <Lock className="w-4 h-4 text-[#FF69B4]" /> Change Password
                                 </h3>
-                                <p className={`text-xs ${THEME.subText} mb-4`}>Leave both fields blank to keep your current password. No special characters allowed.</p>
+                                <p className={`text-xs ${THEME.subText} mb-4`}>Leave both fields blank to keep your current password.</p>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* New Password */}
                                     <div>
                                         <label className={`text-xs font-bold mb-2 block ${THEME.subText}`}>
@@ -356,7 +329,11 @@ const ProfilePage = () => {
                                                 type={showPassword ? "text" : "password"}
                                                 value={formData.password}
                                                 onChange={handleChange}
-                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase}`}
+                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${
+                                                    formData.password && !allRequirementsMet(formData.password) ? 'border-red-500 dark:border-red-500' : ''
+                                                } ${
+                                                    formData.password && allRequirementsMet(formData.password) ? 'border-green-500 dark:border-green-500' : ''
+                                                }`}
                                                 placeholder="Min. 8 characters"
                                             />
                                             <button
@@ -367,6 +344,31 @@ const ProfilePage = () => {
                                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
                                         </div>
+
+                                        {/* Requirements Checklist */}
+                                        {formData.password && (
+                                            <div className="mt-4 p-4 bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-[#FF69B4]/20">
+                                                <p className={`text-xs font-bold mb-3 ${THEME.subText}`}>Requirements:</p>
+                                                <div className="space-y-2">
+                                                    <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).minLength ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                        {checkPasswordRequirements(formData.password).minLength ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                                        Contains at least 8 characters
+                                                    </div>
+                                                    <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                        {checkPasswordRequirements(formData.password).hasUppercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                                        Includes at least 1 uppercase letter (A–Z)
+                                                    </div>
+                                                    <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                        {checkPasswordRequirements(formData.password).hasLowercase ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                                        Includes at least 1 lowercase letter (a–z)
+                                                    </div>
+                                                    <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).hasNumber ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                        {checkPasswordRequirements(formData.password).hasNumber ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                                                        Includes at least 1 number (0–9)
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Confirm Password */}
@@ -382,9 +384,9 @@ const ProfilePage = () => {
                                                 value={formData.password_confirm}
                                                 onChange={handleChange}
                                                 className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${
-                                                    passwordStatus.status === 'match' ? 'border-green-500 dark:border-green-500' : ''
+                                                    formData.password_confirm && formData.password !== formData.password_confirm ? 'border-red-500 dark:border-red-500' : ''
                                                 } ${
-                                                    passwordStatus.status === 'mismatch' || passwordStatus.status === 'error' ? 'border-red-500 dark:border-red-500' : ''
+                                                    formData.password_confirm && formData.password === formData.password_confirm && formData.password ? 'border-green-500 dark:border-green-500' : ''
                                                 }`}
                                                 placeholder="Re-enter password"
                                             />
@@ -396,26 +398,25 @@ const ProfilePage = () => {
                                                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
                                         </div>
+
+                                        {/* Match Status */}
+                                        {formData.password_confirm && (
+                                            <div className="mt-4 flex items-center gap-2">
+                                                {formData.password === formData.password_confirm && formData.password ? (
+                                                    <>
+                                                        <Check className="w-5 h-5 text-green-500" />
+                                                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">Passwords match</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <X className="w-5 h-5 text-red-500" />
+                                                        <span className="text-sm font-semibold text-red-600 dark:text-red-400">Passwords do not match</span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-
-                                {/* Password Status Indicator */}
-                                {passwordStatus.status !== 'idle' && (
-                                    <div className="mt-4 flex items-center gap-2">
-                                        {passwordStatus.status === 'match' && (
-                                            <>
-                                                <Check className="w-5 h-5 text-green-500" />
-                                                <span className="text-sm font-semibold text-green-600 dark:text-green-400">{passwordStatus.message}</span>
-                                            </>
-                                        )}
-                                        {(passwordStatus.status === 'mismatch' || passwordStatus.status === 'error') && (
-                                            <>
-                                                <X className="w-5 h-5 text-red-500" />
-                                                <span className="text-sm font-semibold text-red-600 dark:text-red-400">{passwordStatus.message}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
                             </div>
 
                             {/* Submit Button */}

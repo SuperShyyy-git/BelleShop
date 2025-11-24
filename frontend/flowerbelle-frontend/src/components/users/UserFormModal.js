@@ -60,44 +60,19 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
 
     if (!isOpen) return null;
 
-    // --- Password Validation ---
-    const validatePassword = (pwd) => {
-        if (!pwd) return { valid: true, error: '' };
-        
-        // Check for special characters
-        const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd);
-        if (hasSpecialChar) {
-            return { valid: false, error: 'Password cannot contain special characters' };
-        }
-        
-        // Check minimum length
-        if (pwd.length < 8) {
-            return { valid: false, error: 'Password must be at least 8 characters' };
-        }
-        
-        return { valid: true, error: '' };
+    // --- Password Requirements Check ---
+    const checkPasswordRequirements = (pwd) => {
+        return {
+            minLength: pwd.length >= 8,
+            hasUppercase: /[A-Z]/.test(pwd),
+            hasLowercase: /[a-z]/.test(pwd),
+            hasNumber: /[0-9]/.test(pwd),
+        };
     };
 
-    // --- Check if passwords match and are valid ---
-    const getPasswordStatus = () => {
-        if (!formData.password && !formData.password_confirm) {
-            return { status: 'idle', message: '' };
-        }
-        
-        const validation = validatePassword(formData.password);
-        if (!validation.valid) {
-            return { status: 'error', message: validation.error };
-        }
-        
-        if (formData.password !== formData.password_confirm) {
-            return { status: 'mismatch', message: 'Passwords do not match' };
-        }
-        
-        if (formData.password && formData.password_confirm && formData.password === formData.password_confirm) {
-            return { status: 'match', message: 'Passwords match' };
-        }
-        
-        return { status: 'idle', message: '' };
+    const allRequirementsMet = (pwd) => {
+        const reqs = checkPasswordRequirements(pwd);
+        return reqs.minLength && reqs.hasUppercase && reqs.hasLowercase && reqs.hasNumber;
     };
 
     // 3. Handle input changes
@@ -152,11 +127,10 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check password validation
+        // Check password validation only if password fields are filled
         if (formData.password || formData.password_confirm) {
-            const validation = validatePassword(formData.password);
-            if (!validation.valid) {
-                alert(validation.error);
+            if (!allRequirementsMet(formData.password)) {
+                alert("Password does not meet all requirements.");
                 return;
             }
             
@@ -193,7 +167,6 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     // --- UPDATED STYLES WITH DASHBOARD COLORS ---
     const inputClass = `w-full pl-4 pr-4 py-3 rounded-xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] focus:ring-4 focus:ring-[#FF69B4]/10 dark:focus:ring-[#FF77A9]/10 outline-none transition-all bg-white dark:bg-[#1A1A1D] text-gray-700 dark:text-gray-200 font-medium disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:border-gray-200 dark:disabled:border-gray-700`;
     const labelClass = `flex items-center gap-1.5 text-sm font-bold text-[#FF69B4] dark:text-[#FF77A9] mb-1.5 uppercase tracking-wide`;
-    const passwordStatus = getPasswordStatus();
 
     return (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -284,11 +257,11 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
 
                     {/* SECTION 2: Personal Details */}
                     <div>
-                        <label className={labelClass}>Name <span className="text-red-400">*</span></label>
+                        <label className={labelClass}>Full Name <span className="text-red-400">*</span></label>
                         <input
-                            name="Name"
+                            name="full_name"
                             type="text"
-                            value={formData.Name}
+                            value={formData.full_name}
                             onChange={handleChange}
                             className={inputClass}
                             required
@@ -340,8 +313,12 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                             <h4 className="text-[#FF69B4] dark:text-[#FF77A9] font-bold text-sm mb-4 flex items-center gap-2 border-b-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 pb-2">
                                 <Lock size={14} /> Security Credentials
                             </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">No special characters allowed. Minimum 8 characters required.</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                                {isEditing ? 'Leave blank to keep current password.' : 'Password requirements listed below.'}
+                            </p>
+                            
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* New Password */}
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 block">
                                         Password {isEditing ? '' : <span className="text-red-400">*</span>}
@@ -352,9 +329,13 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                             type={showPassword ? "text" : "password"}
                                             value={formData.password}
                                             onChange={handleChange}
-                                            className={inputClass}
-                                            required={!isEditing && !formData.password_confirm}
-                                            placeholder={isEditing ? 'Leave blank to keep current' : 'Enter password'}
+                                            className={`${inputClass} ${
+                                                formData.password && !allRequirementsMet(formData.password) ? 'border-red-500 dark:border-red-500' : ''
+                                            } ${
+                                                formData.password && allRequirementsMet(formData.password) ? 'border-green-500 dark:border-green-500' : ''
+                                            }`}
+                                            required={!isEditing}
+                                            placeholder={isEditing ? 'Leave blank to keep current' : 'Min. 8 characters'}
                                         />
                                         <button
                                             type="button"
@@ -364,7 +345,34 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
+
+                                    {/* Requirements Checklist */}
+                                    {formData.password && (
+                                        <div className="mt-4 p-3 bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-[#FF69B4]/20">
+                                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">Requirements:</p>
+                                            <div className="space-y-1.5">
+                                                <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).minLength ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {checkPasswordRequirements(formData.password).minLength ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                    At least 8 characters
+                                                </div>
+                                                <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {checkPasswordRequirements(formData.password).hasUppercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                    1 uppercase letter (A–Z)
+                                                </div>
+                                                <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {checkPasswordRequirements(formData.password).hasLowercase ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                    1 lowercase letter (a–z)
+                                                </div>
+                                                <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).hasNumber ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {checkPasswordRequirements(formData.password).hasNumber ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                    1 number (0–9)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {/* Confirm Password */}
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 block">
                                         Confirm Password {isEditing ? '' : <span className="text-red-400">*</span>}
@@ -376,12 +384,12 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                             value={formData.password_confirm}
                                             onChange={handleChange}
                                             className={`${inputClass} ${
-                                                passwordStatus.status === 'match' ? 'border-green-500 dark:border-green-500' : ''
+                                                formData.password_confirm && formData.password !== formData.password_confirm ? 'border-red-500 dark:border-red-500' : ''
                                             } ${
-                                                passwordStatus.status === 'mismatch' || passwordStatus.status === 'error' ? 'border-red-500 dark:border-red-500' : ''
+                                                formData.password_confirm && formData.password === formData.password_confirm && formData.password ? 'border-green-500 dark:border-green-500' : ''
                                             }`}
-                                            required={!isEditing && !formData.password}
-                                            placeholder={isEditing ? 'Leave blank to keep current' : 'Confirm password'}
+                                            required={!isEditing}
+                                            placeholder={isEditing ? 'Leave blank to keep current' : 'Re-enter password'}
                                         />
                                         <button
                                             type="button"
@@ -391,26 +399,25 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
+
+                                    {/* Match Status */}
+                                    {formData.password_confirm && (
+                                        <div className="mt-4 flex items-center gap-2">
+                                            {formData.password === formData.password_confirm && formData.password ? (
+                                                <>
+                                                    <Check className="w-5 h-5 text-green-500" />
+                                                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">Passwords match</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <X className="w-5 h-5 text-red-500" />
+                                                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">Passwords do not match</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-
-                            {/* Password Status Indicator */}
-                            {passwordStatus.status !== 'idle' && (
-                                <div className="mt-4 flex items-center gap-2">
-                                    {passwordStatus.status === 'match' && (
-                                        <>
-                                            <Check className="w-5 h-5 text-green-500" />
-                                            <span className="text-sm font-semibold text-green-600 dark:text-green-400">{passwordStatus.message}</span>
-                                        </>
-                                    )}
-                                    {(passwordStatus.status === 'mismatch' || passwordStatus.status === 'error') && (
-                                        <>
-                                            <X className="w-5 h-5 text-red-500" />
-                                            <span className="text-sm font-semibold text-red-600 dark:text-red-400">{passwordStatus.message}</span>
-                                        </>
-                                    )}
-                                </div>
-                            )}
                         </div>
                     )}
 
