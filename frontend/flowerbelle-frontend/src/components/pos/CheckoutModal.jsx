@@ -125,7 +125,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
   const closeReceipt = () => {
     setReceiptData(null);
     resetForm();
-    onClose();
+    // Don't call onClose() here - let user click the button
   };
 
   const handleQuickAmount = (amount) => setAmountPaid(amount.toString());
