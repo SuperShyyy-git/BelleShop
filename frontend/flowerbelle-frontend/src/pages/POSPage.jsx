@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import inventoryService from '../services/inventoryService';
 import posService from '../services/posService';
-import { Package, Search, ShoppingCart, X, ShoppingBagIcon } from 'lucide-react';
+import { Package, Search, ShoppingCart, X, ShoppingBagIcon, Plus, Minus, Trash2 } from 'lucide-react';
 import Loading from '../components/common/Loading';
 import CheckoutModal from '../components/pos/CheckoutModal';
 import toast from 'react-hot-toast';
@@ -145,6 +145,30 @@ const POSPage = () => {
 
     const removeFromCart = (productId) => setCart(cart.filter(item => item.id !== productId));
 
+    const getCartItemQuantity = (productId) => {
+        const item = cart.find(i => i.id === productId);
+        return item ? item.quantity : 0;
+    };
+
+    const updateQuantity = (productId, newQuantity) => {
+        const product = cart.find(item => item.id === productId);
+        if (!product) return;
+
+        if (newQuantity <= 0) {
+            removeFromCart(productId);
+            return;
+        }
+
+        if (newQuantity > product.current_stock) {
+            toast.error(`Only ${product.current_stock} in stock.`);
+            return;
+        }
+
+        setCart(cart.map(item => 
+            item.id === productId ? { ...item, quantity: newQuantity } : item
+        ));
+    };
+
     const subtotal = cart.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
     const total = subtotal;
     const totals = { subtotal, tax: 0, total };
@@ -243,51 +267,88 @@ const POSPage = () => {
                     
                     {/* Responsive Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 lg:gap-5 pb-6">
-                        {products.map((product) => (
-                            <div
-                                key={product.id}
-                                onClick={() => addToCart(product)}
-                                className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 cursor-pointer transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 group ${THEME.cardBase}`}
-                            >
-                                {/* Image */}
-                                <div className="w-full h-24 sm:h-28 md:h-32 lg:h-36 mb-2 sm:mb-3 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-gray-50 dark:bg-[#1A1A1D] relative">
-                                    {product.image_url ? (
-                                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                    ) : (
-                                        <Package className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-300 dark:text-gray-600" />
-                                    )}
-                                    {/* Quick Add Overlay */}
-                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <div className="bg-white dark:bg-[#1A1A1D] text-[#FF69B4] p-1.5 sm:p-2 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
-                                            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                        </div>
-                                    </div>
-                                </div>
+                        {products.map((product) => {
+                            const inCartQty = getCartItemQuantity(product.id);
+                            const isInCart = inCartQty > 0;
 
-                                {/* Details */}
-                                <div>
-                                    <h3 className={`font-bold text-[10px] sm:text-xs md:text-sm lg:text-base mb-0.5 sm:mb-1 line-clamp-2 leading-snug ${THEME.headingText}`}>
-                                        {product.name}
-                                    </h3>
-                                    <p className={`text-[9px] sm:text-[10px] md:text-xs mb-1.5 sm:mb-2 md:mb-3 font-medium ${THEME.subText}`}>
-                                        {product.category_name}
-                                    </p>
-                                    
-                                    <div className="flex items-end justify-between">
-                                        <span className={`text-sm sm:text-base md:text-lg font-extrabold ${THEME.primaryText}`}>
-                                            {formatCurrency(product.unit_price)}
-                                        </span>
-                                        <span className={`text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 rounded-md uppercase tracking-wider ${
-                                            product.current_stock <= product.reorder_level 
-                                            ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' 
-                                            : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                        }`}>
-                                            {product.current_stock} Left
-                                        </span>
+                            return (
+                                <div
+                                    key={product.id}
+                                    className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 group ${THEME.cardBase} ${isInCart ? 'ring-2 ring-[#FF69B4]' : ''}`}
+                                >
+                                    {/* Image */}
+                                    <div 
+                                        onClick={() => !isInCart && addToCart(product)}
+                                        className={`w-full h-24 sm:h-28 md:h-32 lg:h-36 mb-2 sm:mb-3 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-gray-50 dark:bg-[#1A1A1D] relative ${!isInCart ? 'cursor-pointer' : ''}`}
+                                    >
+                                        {product.image_url ? (
+                                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        ) : (
+                                            <Package className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-300 dark:text-gray-600" />
+                                        )}
+                                        {/* Quick Add Overlay */}
+                                        {!isInCart && (
+                                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <div className="bg-white dark:bg-[#1A1A1D] text-[#FF69B4] p-1.5 sm:p-2 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                                                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Details */}
+                                    <div>
+                                        <h3 className={`font-bold text-[10px] sm:text-xs md:text-sm lg:text-base mb-0.5 sm:mb-1 line-clamp-2 leading-snug ${THEME.headingText}`}>
+                                            {product.name}
+                                        </h3>
+                                        <p className={`text-[9px] sm:text-[10px] md:text-xs mb-1.5 sm:mb-2 font-medium ${THEME.subText}`}>
+                                            {product.category_name}
+                                        </p>
+                                        
+                                        <div className="flex items-end justify-between mb-2">
+                                            <span className={`text-sm sm:text-base md:text-lg font-extrabold ${THEME.primaryText}`}>
+                                                {formatCurrency(product.unit_price)}
+                                            </span>
+                                            <span className={`text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 rounded-md uppercase tracking-wider ${
+                                                product.current_stock <= product.reorder_level 
+                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' 
+                                                : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                            }`}>
+                                                {product.current_stock} Left
+                                            </span>
+                                        </div>
+
+                                        {/* Quantity Controls */}
+                                        {isInCart ? (
+                                            <div className="flex items-center gap-1 sm:gap-2">
+                                                <button
+                                                    onClick={() => updateQuantity(product.id, inCartQty - 1)}
+                                                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg p-1.5 sm:p-2 transition-colors"
+                                                >
+                                                    <Minus className="w-3 h-3 sm:w-4 sm:h-4 mx-auto" />
+                                                </button>
+                                                <div className={`flex-1 text-center font-bold text-xs sm:text-sm ${THEME.primaryText}`}>
+                                                    {inCartQty}
+                                                </div>
+                                                <button
+                                                    onClick={() => updateQuantity(product.id, inCartQty + 1)}
+                                                    className={`flex-1 rounded-lg p-1.5 sm:p-2 transition-colors ${THEME.buttonPrimary}`}
+                                                >
+                                                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mx-auto" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => addToCart(product)}
+                                                className={`w-full rounded-lg py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold transition-all ${THEME.buttonPrimary}`}
+                                            >
+                                                Add to Cart
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
 
                         {products.length === 0 && (
                             <div className="col-span-full text-center py-12 sm:py-16 md:py-20 text-gray-400 dark:text-gray-600">
@@ -349,34 +410,62 @@ const POSPage = () => {
                         {/* Items */}
                         <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/50 dark:bg-black/20">
                             {cart.map((item) => (
-                                <div key={item.id} className="bg-white dark:bg-[#1A1A1D] rounded-lg p-2.5 border border-gray-100 dark:border-gray-800 flex gap-2 group">
-                                    {/* Item Image */}
-                                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
-                                        {item.image_url ? (
-                                            <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Package className="w-5 h-5 text-gray-300" />
-                                            </div>
-                                        )}
+                                <div key={item.id} className="bg-white dark:bg-[#1A1A1D] rounded-lg p-3 border border-gray-100 dark:border-gray-800">
+                                    {/* Item Header */}
+                                    <div className="flex gap-2 mb-2">
+                                        <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
+                                            {item.image_url ? (
+                                                <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <Package className="w-5 h-5 text-gray-300" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className={`font-bold text-sm line-clamp-1 ${THEME.headingText}`}>{item.name}</h4>
+                                            <p className={`text-xs ${THEME.primaryText} font-bold`}>{formatCurrency(item.unit_price)}</p>
+                                        </div>
+
+                                        <button 
+                                            onClick={() => removeFromCart(item.id)}
+                                            className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
 
-                                    {/* Item Details */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-start gap-1">
-                                            <h4 className={`font-bold text-xs line-clamp-1 ${THEME.headingText}`}>{item.name}</h4>
-                                            <button 
-                                                onClick={() => removeFromCart(item.id)}
-                                                className="text-gray-400 hover:text-red-500 flex-shrink-0"
-                                            >
-                                                <X className="w-3.5 h-3.5" />
-                                            </button>
+                                    {/* Quantity Controls */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg p-2 transition-colors"
+                                        >
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <div className="flex-1 text-center">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={item.current_stock}
+                                                value={item.quantity}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 1;
+                                                    updateQuantity(item.id, val);
+                                                }}
+                                                className={`w-full text-center font-bold text-sm py-1.5 rounded-lg ${THEME.inputBase}`}
+                                            />
                                         </div>
-                                        <p className={`text-xs ${THEME.primaryText} font-bold`}>{formatCurrency(item.unit_price)}</p>
-                                        <p className={`text-xs ${THEME.subText}`}>Qty: {item.quantity}</p>
-                                    </div>
-                                    <div className={`text-right font-bold text-sm ${THEME.primaryText}`}>
-                                        {formatCurrency(item.unit_price * item.quantity)}
+                                        <button
+                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                            className={`rounded-lg p-2 transition-colors ${THEME.buttonPrimary}`}
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                        <div className={`text-right font-bold text-sm ${THEME.primaryText} min-w-[80px]`}>
+                                            {formatCurrency(item.unit_price * item.quantity)}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

@@ -284,13 +284,10 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#FF69B4]/10 bg-gray-50/50 dark:bg-[#1e1e1e]">
           <div className="flex items-center gap-4">
              <div className="p-3 bg-white dark:bg-[#1A1A1D] rounded-2xl shadow-sm border border-gray-100 dark:border-[#FF69B4]/20">
-                <Receipt className="w-6 h-6 text-[#FF69B4]" />
+                <Banknote className="w-6 h-6 text-[#FF69B4]" />
              </div>
              <div>
                 <h3 className={`text-2xl font-extrabold ${THEME.headingText}`}>Checkout</h3>
-                <p className="text-yellow-600 dark:text-yellow-500 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> All Fields Required
-                </p>
              </div>
           </div>
           <button
