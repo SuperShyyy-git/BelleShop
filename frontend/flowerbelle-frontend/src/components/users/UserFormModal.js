@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     X, User, Mail, Phone, Lock, Shield, Save, 
-    UserPlus, UserCog, ArrowRight, AlertCircle, Eye, EyeOff 
+    UserPlus, UserCog, ArrowRight, AlertCircle, Eye, EyeOff, Check 
 } from 'lucide-react';
 
 // Define roles
@@ -40,7 +40,6 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                 password_confirm: '',
                 full_name: user.full_name || '',
                 email: user.email || '',
-                // Handle case where backend might send 'phone' OR 'phone_number'
                 phone_number: user.phone_number || user.phone || '',
                 role: user.role || ROLES[0],
                 is_active: user.is_active !== undefined ? user.is_active : true,
@@ -60,6 +59,46 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     }, [user, isEditing]);
 
     if (!isOpen) return null;
+
+    // --- Password Validation ---
+    const validatePassword = (pwd) => {
+        if (!pwd) return { valid: true, error: '' };
+        
+        // Check for special characters
+        const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd);
+        if (hasSpecialChar) {
+            return { valid: false, error: 'Password cannot contain special characters' };
+        }
+        
+        // Check minimum length
+        if (pwd.length < 8) {
+            return { valid: false, error: 'Password must be at least 8 characters' };
+        }
+        
+        return { valid: true, error: '' };
+    };
+
+    // --- Check if passwords match and are valid ---
+    const getPasswordStatus = () => {
+        if (!formData.password && !formData.password_confirm) {
+            return { status: 'idle', message: '' };
+        }
+        
+        const validation = validatePassword(formData.password);
+        if (!validation.valid) {
+            return { status: 'error', message: validation.error };
+        }
+        
+        if (formData.password !== formData.password_confirm) {
+            return { status: 'mismatch', message: 'Passwords do not match' };
+        }
+        
+        if (formData.password && formData.password_confirm && formData.password === formData.password_confirm) {
+            return { status: 'match', message: 'Passwords match' };
+        }
+        
+        return { status: 'idle', message: '' };
+    };
 
     // 3. Handle input changes
     const handleChange = (e) => {
@@ -112,17 +151,30 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     // 5. Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Check password validation
+        if (formData.password || formData.password_confirm) {
+            const validation = validatePassword(formData.password);
+            if (!validation.valid) {
+                alert(validation.error);
+                return;
+            }
+            
+            if (formData.password !== formData.password_confirm) {
+                alert("Passwords do not match.");
+                return;
+            }
+        }
+
         setLoading(true);
 
         // Create a copy of the data
         const dataToSubmit = { ...formData };
         
-        // --- FIX STARTS HERE ---
-        // We manually map 'phone_number' (frontend) to 'phone' (backend expectation)
+        // Map 'phone_number' (frontend) to 'phone' (backend expectation)
         if (formData.phone_number) {
             dataToSubmit.phone = formData.phone_number;
         }
-        // --- FIX ENDS HERE ---
 
         if (isEditing) {
             if (dataToSubmit.password === '') delete dataToSubmit.password;
@@ -141,6 +193,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     // --- UPDATED STYLES WITH DASHBOARD COLORS ---
     const inputClass = `w-full pl-4 pr-4 py-3 rounded-xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] focus:ring-4 focus:ring-[#FF69B4]/10 dark:focus:ring-[#FF77A9]/10 outline-none transition-all bg-white dark:bg-[#1A1A1D] text-gray-700 dark:text-gray-200 font-medium disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:border-gray-200 dark:disabled:border-gray-700`;
     const labelClass = `flex items-center gap-1.5 text-sm font-bold text-[#FF69B4] dark:text-[#FF77A9] mb-1.5 uppercase tracking-wide`;
+    const passwordStatus = getPasswordStatus();
 
     return (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -231,11 +284,11 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
 
                     {/* SECTION 2: Personal Details */}
                     <div>
-                        <label className={labelClass}>Full Name <span className="text-red-400">*</span></label>
+                        <label className={labelClass}>Name <span className="text-red-400">*</span></label>
                         <input
-                            name="full_name"
+                            name="Name"
                             type="text"
-                            value={formData.full_name}
+                            value={formData.Name}
                             onChange={handleChange}
                             className={inputClass}
                             required
@@ -287,6 +340,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                             <h4 className="text-[#FF69B4] dark:text-[#FF77A9] font-bold text-sm mb-4 flex items-center gap-2 border-b-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 pb-2">
                                 <Lock size={14} /> Security Credentials
                             </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">No special characters allowed. Minimum 8 characters required.</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 block">
@@ -321,7 +375,11 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                             type={showConfirmPassword ? "text" : "password"}
                                             value={formData.password_confirm}
                                             onChange={handleChange}
-                                            className={inputClass}
+                                            className={`${inputClass} ${
+                                                passwordStatus.status === 'match' ? 'border-green-500 dark:border-green-500' : ''
+                                            } ${
+                                                passwordStatus.status === 'mismatch' || passwordStatus.status === 'error' ? 'border-red-500 dark:border-red-500' : ''
+                                            }`}
                                             required={!isEditing && !formData.password}
                                             placeholder={isEditing ? 'Leave blank to keep current' : 'Confirm password'}
                                         />
@@ -335,6 +393,24 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Password Status Indicator */}
+                            {passwordStatus.status !== 'idle' && (
+                                <div className="mt-4 flex items-center gap-2">
+                                    {passwordStatus.status === 'match' && (
+                                        <>
+                                            <Check className="w-5 h-5 text-green-500" />
+                                            <span className="text-sm font-semibold text-green-600 dark:text-green-400">{passwordStatus.message}</span>
+                                        </>
+                                    )}
+                                    {(passwordStatus.status === 'mismatch' || passwordStatus.status === 'error') && (
+                                        <>
+                                            <X className="w-5 h-5 text-red-500" />
+                                            <span className="text-sm font-semibold text-red-600 dark:text-red-400">{passwordStatus.message}</span>
+                                        </>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 

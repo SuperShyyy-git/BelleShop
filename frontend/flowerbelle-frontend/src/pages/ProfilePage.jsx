@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import userService from '../services/userService';
 import authService from '../services/authService';
 import Loading from '../components/common/Loading';
-import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle, LogOut } from 'lucide-react';
+import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle, LogOut, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast'; 
 
 // --- THEME CONSTANTS ---
@@ -32,6 +32,7 @@ const ProfilePage = () => {
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
     const [formData, setFormData] = useState({
+        username: '',
         full_name: '',
         email: '',
         phone_number: '',
@@ -45,6 +46,46 @@ const ProfilePage = () => {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [phoneError, setPhoneError] = useState('');
 
+    // --- Password Validation ---
+    const validatePassword = (pwd) => {
+        if (!pwd) return { valid: true, error: '' };
+        
+        // Check for special characters
+        const hasSpecialChar = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd);
+        if (hasSpecialChar) {
+            return { valid: false, error: 'Password cannot contain special characters' };
+        }
+        
+        // Check minimum length
+        if (pwd.length < 8) {
+            return { valid: false, error: 'Password must be at least 8 characters' };
+        }
+        
+        return { valid: true, error: '' };
+    };
+
+    // --- Check if passwords match and are valid ---
+    const getPasswordStatus = () => {
+        if (!formData.password && !formData.password_confirm) {
+            return { status: 'idle', message: '' };
+        }
+        
+        const validation = validatePassword(formData.password);
+        if (!validation.valid) {
+            return { status: 'error', message: validation.error };
+        }
+        
+        if (formData.password !== formData.password_confirm) {
+            return { status: 'mismatch', message: 'Passwords do not match' };
+        }
+        
+        if (formData.password && formData.password_confirm && formData.password === formData.password_confirm) {
+            return { status: 'match', message: 'Passwords match' };
+        }
+        
+        return { status: 'idle', message: '' };
+    };
+
     // --- 1. Fetch Current User Data ---
     const fetchUserData = async () => {
         setLoading(true);
@@ -54,9 +95,9 @@ const ProfilePage = () => {
             
             setUserData(user);
             setFormData({
+                username: user.username || '',
                 full_name: user.full_name || '',
                 email: user.email || '',
-                // Robust check: backend sends 'phone', frontend uses 'phone_number'
                 phone_number: user.phone_number || user.phone || '',
                 password: '',
                 password_confirm: '',
@@ -83,10 +124,8 @@ const ProfilePage = () => {
     const handlePhoneChange = (e) => {
         let value = e.target.value;
         
-        // Remove all non-digit characters
         const cleaned = value.replace(/\D/g, '');
         
-        // Limit to 11 digits and ensure it starts with 09
         if (cleaned.length > 0) {
             if (cleaned.startsWith('09')) {
                 value = cleaned.substring(0, 11);
@@ -103,7 +142,6 @@ const ProfilePage = () => {
         
         setFormData(prev => ({ ...prev, phone_number: value }));
         
-        // Validate phone format: 09XXXXXXXXX (11 digits total)
         const regex = /^09\d{9}$/;
         if (value && !regex.test(value)) {
             setPhoneError('Format: 09XXXXXXXXX (11 digits, e.g., 09175550123)');
@@ -115,23 +153,30 @@ const ProfilePage = () => {
     // --- 3. Handle Form Submission ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSaving(true);
         
-        // Validation check for password match
-        if (formData.password !== formData.password_confirm) {
-            toast.error("Passwords do not match.");
-            setIsSaving(false);
-            return;
+        // Check password validation
+        if (formData.password || formData.password_confirm) {
+            const validation = validatePassword(formData.password);
+            if (!validation.valid) {
+                toast.error(validation.error);
+                return;
+            }
+            
+            if (formData.password !== formData.password_confirm) {
+                toast.error("Passwords do not match.");
+                return;
+            }
         }
 
-        // --- CRITICAL FIX: Change key from 'phone_number' to 'phone' ---
+        setIsSaving(true);
+
         const dataToSubmit = {
+            username: formData.username,
             full_name: formData.full_name,
             email: formData.email,
-            phone: formData.phone_number, // <--- THIS IS THE FIX
+            phone: formData.phone_number,
         };
 
-        // Add password fields only if a new password was entered
         if (formData.password) {
             dataToSubmit.password = formData.password;
         }
@@ -142,10 +187,7 @@ const ProfilePage = () => {
             await userService.updateUser('me', dataToSubmit); 
             toast.success("Profile updated successfully! 💾");
             
-            // Clear passwords after successful update
             setFormData(prev => ({ ...prev, password: '', password_confirm: '' }));
-            
-            // Re-fetch data to reflect any server-side changes
             await fetchUserData(); 
 
         } catch (error) {
@@ -171,6 +213,7 @@ const ProfilePage = () => {
     }
     
     const labelClass = `flex items-center gap-2 text-sm font-bold ${THEME.subText} mb-2 uppercase tracking-wide`;
+    const passwordStatus = getPasswordStatus();
     
     return (
         <div className={`min-h-screen ${THEME.pageBg} p-4 sm:p-6 lg:p-8 transition-colors duration-200`}>
@@ -178,7 +221,6 @@ const ProfilePage = () => {
                 
                 {/* Header Section */}
                 <div className={`rounded-3xl p-8 text-white shadow-xl relative overflow-hidden ${THEME.gradientBg}`}>
-                    {/* Background decoration */}
                     <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
 
@@ -217,20 +259,39 @@ const ProfilePage = () => {
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6">
                             
-                            {/* Full Name */}
+                            {/* Username */}
                             <div>
                                 <label className={labelClass}>
                                     <User className="w-4 h-4" />
-                                    Full Name
+                                    Username <span className="text-[#FF69B4]">*</span>
                                 </label>
                                 <input
-                                    id="full_name"
-                                    name="full_name"
+                                    id="username"
+                                    name="username"
+                                    type="text"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${THEME.inputBase}`}
+                                    placeholder="Enter your username"
+                                    required
+                                />
+                            </div>
+
+                            {/* Name */}
+                            <div>
+                                <label className={labelClass}>
+                                    <User className="w-4 h-4" />
+                                    Name <span className="text-[#FF69B4]">*</span>
+                                </label>
+                                <input
+                                    id="Name"
+                                    name="Name"
                                     type="text"
                                     value={formData.full_name}
                                     onChange={handleChange}
                                     className={`w-full px-4 py-3 rounded-xl outline-none transition-all ${THEME.inputBase}`}
-                                    placeholder="Enter your full name"
+                                    placeholder="Enter your Name"
+                                    required
                                 />
                             </div>
 
@@ -280,7 +341,7 @@ const ProfilePage = () => {
                                 <h3 className={`font-bold text-sm mb-4 flex items-center gap-2 border-b border-gray-200 dark:border-[#FF69B4]/10 pb-2 ${THEME.headingText}`}>
                                     <Lock className="w-4 h-4 text-[#FF69B4]" /> Change Password
                                 </h3>
-                                <p className={`text-xs ${THEME.subText} mb-4`}>Leave both fields blank to keep your current password</p>
+                                <p className={`text-xs ${THEME.subText} mb-4`}>Leave both fields blank to keep your current password. No special characters allowed.</p>
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* New Password */}
@@ -320,7 +381,11 @@ const ProfilePage = () => {
                                                 type={showConfirmPassword ? "text" : "password"}
                                                 value={formData.password_confirm}
                                                 onChange={handleChange}
-                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase}`}
+                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${
+                                                    passwordStatus.status === 'match' ? 'border-green-500 dark:border-green-500' : ''
+                                                } ${
+                                                    passwordStatus.status === 'mismatch' || passwordStatus.status === 'error' ? 'border-red-500 dark:border-red-500' : ''
+                                                }`}
                                                 placeholder="Re-enter password"
                                             />
                                             <button
@@ -333,6 +398,24 @@ const ProfilePage = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Password Status Indicator */}
+                                {passwordStatus.status !== 'idle' && (
+                                    <div className="mt-4 flex items-center gap-2">
+                                        {passwordStatus.status === 'match' && (
+                                            <>
+                                                <Check className="w-5 h-5 text-green-500" />
+                                                <span className="text-sm font-semibold text-green-600 dark:text-green-400">{passwordStatus.message}</span>
+                                            </>
+                                        )}
+                                        {(passwordStatus.status === 'mismatch' || passwordStatus.status === 'error') && (
+                                            <>
+                                                <X className="w-5 h-5 text-red-500" />
+                                                <span className="text-sm font-semibold text-red-600 dark:text-red-400">{passwordStatus.message}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Submit Button */}
@@ -403,7 +486,6 @@ const ProfilePage = () => {
             {showLogoutModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className={`w-full max-w-md rounded-3xl ${THEME.cardBase} overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200`}>
-                        {/* Modal Header */}
                         <div className={`p-6 text-white ${THEME.gradientBg}`}>
                             <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -416,13 +498,11 @@ const ProfilePage = () => {
                             </div>
                         </div>
 
-                        {/* Modal Body */}
                         <div className="p-6">
                             <p className={`text-sm ${THEME.subText} mb-6`}>
                                 You will be logged out of your account and redirected to the login page. Any unsaved changes will be lost.
                             </p>
 
-                            {/* Action Buttons */}
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowLogoutModal(false)}
