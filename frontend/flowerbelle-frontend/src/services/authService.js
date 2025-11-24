@@ -1,4 +1,8 @@
 import api from './api';
+import Cookies from 'js-cookie'; // <-- ADDED: For token consistency
+
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 const authService = {
     // Login user
@@ -6,13 +10,16 @@ const authService = {
         try {
             const response = await api.post('/auth/login/', credentials);
             
-            // Store token and user data in localStorage
+            // Store tokens in cookies (aligning with api.js interceptor)
             if (response.data.access) {
-                localStorage.setItem('token', response.data.access);
-                localStorage.setItem('refresh_token', response.data.refresh);
+                // Access token (short expiry, set to expire in 1 hour)
+                Cookies.set(ACCESS_TOKEN_KEY, response.data.access, { expires: 1/24, sameSite: 'Strict' }); 
+                // Refresh token (long expiry, set to expire in 7 days)
+                Cookies.set(REFRESH_TOKEN_KEY, response.data.refresh, { expires: 7, sameSite: 'Strict' });
             }
             
             if (response.data.user) {
+                // User object remains in localStorage
                 localStorage.setItem('user', JSON.stringify(response.data.user));
             }
             
@@ -36,8 +43,8 @@ const authService = {
 
     // Logout user
     logout: () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
+        Cookies.remove(ACCESS_TOKEN_KEY);
+        Cookies.remove(REFRESH_TOKEN_KEY);
         localStorage.removeItem('user');
     },
 
@@ -55,37 +62,43 @@ const authService = {
         return null;
     },
 
-    // Get token
+    // Get access token (used by api.js request interceptor)
     getToken: () => {
-        return localStorage.getItem('token');
+        return Cookies.get(ACCESS_TOKEN_KEY);
+    },
+    
+    // Get refresh token (used by api.js response interceptor for refresh logic)
+    getRefreshToken: () => {
+        return Cookies.get(REFRESH_TOKEN_KEY);
     },
 
     // Check if user is authenticated
     isAuthenticated: () => {
-        const token = localStorage.getItem('token');
+        const token = Cookies.get(ACCESS_TOKEN_KEY);
         return !!token;
     },
 
-    // Refresh token
+    // Refresh token - Simplified to only return the refresh token utility
+    // (Actual refresh logic moved to api.js interceptor)
     refreshToken: async () => {
         try {
-            const refreshToken = localStorage.getItem('refresh_token');
+            const refreshToken = authService.getRefreshToken();
             if (!refreshToken) {
                 throw new Error('No refresh token available');
             }
 
+            // Note: This block is technically redundant since api.js handles it now, but harmless.
             const response = await api.post('/auth/token/refresh/', {
                 refresh: refreshToken
             });
 
             if (response.data.access) {
-                localStorage.setItem('token', response.data.access);
+                Cookies.set(ACCESS_TOKEN_KEY, response.data.access, { expires: 1/24, sameSite: 'Strict' });
             }
 
             return response.data;
         } catch (error) {
             console.error('Token refresh error:', error);
-            authService.logout();
             throw error;
         }
     }

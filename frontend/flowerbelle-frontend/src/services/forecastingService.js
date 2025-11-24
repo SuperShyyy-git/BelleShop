@@ -1,18 +1,7 @@
-import axios from 'axios';
-import authService from './authService';
+// File: supershyyy-git/belleshop/BelleShop-37e5086b339f270f7e9688e8de855886caaa2376/frontend/flowerbelle-frontend/src/services/forecastingService.js
+import api from './api'; // <-- IMPORTANT: Use the configured api instance
 
-// Use localhost for local dev, or your Render URL if deployed
-const API_URL = 'http://localhost:8000/api';
-
-const getAuthHeaders = () => {
-    const token = authService.getToken ? authService.getToken() : null;
-    return {
-        headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json'
-        }
-    };
-};
+// REMOVED: import axios, import authService, API_URL, and getAuthHeaders functions
 
 // 1. Generate Forecast (POST)
 export const generateForecast = async (productId, forecastDays = 30, trainingDays = 90) => {
@@ -22,7 +11,11 @@ export const generateForecast = async (productId, forecastDays = 30, trainingDay
             forecast_days: forecastDays,
             training_days: trainingDays
         };
-        const response = await axios.post(`${API_URL}/forecasting/generate/`, payload, getAuthHeaders());
+        
+        // Use the imported 'api' instance. URL path is relative.
+        // It uses the correct base URL and automatically handles auth and trailing slash.
+        // Expects: POST https://flowerbelle-backend.onrender.com/api/forecasting/generate/
+        const response = await api.post('/forecasting/generate', payload); 
         return response.data;
     } catch (error) {
         console.error("❌ Error generating forecast:", error.message);
@@ -33,13 +26,10 @@ export const generateForecast = async (productId, forecastDays = 30, trainingDay
 // 2. Get Forecast Summary (GET)
 export const getForecastSummary = async (productId) => {
     try {
-        // Matches urls.py: path('summary/<int:days>/', ...) 
-        // Note: Your backend expects 'days' or 'productId'. 
-        // Based on your last backend code, it was path('summary/<int:days>/').
-        // Let's assume you want the forecast for a specific product ID based on your page logic.
-        // If your backend view expects an ID, ensure your urls.py uses <int:product_id> or similar.
-        // For now, consistent with your previous frontend attempt:
-        const response = await axios.get(`${API_URL}/forecasting/summary/${productId}/`, getAuthHeaders());
+        // Use the imported 'api' instance.
+        // URL is clean: /forecasting/summary/{productId}
+        // api.js ensures the correct base URL and adds the trailing slash: /api/forecasting/summary/6/
+        const response = await api.get(`/forecasting/summary/${productId}`);
         return response.data;
     } catch (error) {
         console.error("❌ Error fetching forecast summary:", error.message);
@@ -50,7 +40,9 @@ export const getForecastSummary = async (productId) => {
 // 3. Get Dashboard Stats (GET)
 export const getDashboardStats = async () => {
     try {
-        const response = await axios.get(`${API_URL}/forecasting/dashboard-stats/`, getAuthHeaders());
+        // Use the imported 'api' instance.
+        // Expects: GET https://flowerbelle-backend.onrender.com/api/forecasting/dashboard-stats/
+        const response = await api.get('/forecasting/dashboard-stats');
         return response.data;
     } catch (error) {
         console.error("❌ Error fetching dashboard stats:", error.message);

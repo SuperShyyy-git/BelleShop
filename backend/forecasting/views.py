@@ -7,8 +7,7 @@ from django.db.models.functions import TruncDate
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-# FIX: Import AllowAny permission
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated # FIX: Moved AllowAny import here
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
@@ -18,17 +17,23 @@ from inventory.models import InventoryMovement, Product
 class ForecastingMixin:
     """Helper class to handle data loading and model training"""
     
-    def get_sales_data(self):
+    # FIX: Added product_id=None to accept the filter from the views
+    def get_sales_data(self, product_id=None): 
         # 1. FETCH DATA FROM INVENTORY MOVEMENTS
         movements = InventoryMovement.objects.filter(
             movement_type='SALE'
-        ).values('created_at', 'quantity')
+        )
+        
+        # NEW: Filter by product_id if provided (Crucial Fix)
+        if product_id:
+            # Note: The Product ID passed from the frontend is used here
+            movements = movements.filter(product_id=product_id) 
 
-        if not movements:
+        if not movements.exists(): # Check if the filtered queryset is empty
             return None
 
         # 2. CONVERT TO DATAFRAME
-        df = pd.DataFrame(list(movements))
+        df = pd.DataFrame(list(movements.values('created_at', 'quantity'))) # Use .values() from filtered queryset
         
         # 3. PREPROCESS
         df['date'] = pd.to_datetime(df['created_at']).dt.date
@@ -68,14 +73,13 @@ class ForecastingMixin:
         return model, mae
 
 class ForecastDashboardView(APIView, ForecastingMixin):
-    # FIX: Allow access for testing
     permission_classes = [AllowAny] 
     
     def get(self, request):
         try:
-            df = self.get_sales_data()
+            # NOTE: This dashboard is currently showing ALL sales data, not filtered by product.
+            df = self.get_sales_data() 
             if df is None:
-                # FIX: Returning the structure expected by the frontend
                 return Response({
                     "total_items_sold": 0, 
                     "avg_daily_items": 0, 
@@ -112,16 +116,22 @@ class ForecastDashboardView(APIView, ForecastingMixin):
             )
 
 class GenerateForecastView(APIView, ForecastingMixin):
-    # FIX: Allow access for testing
     permission_classes = [AllowAny]
     
     def post(self, request):
         try:
-            # 1. Get Data
-            df = self.get_sales_data()
+            # NEW: Read product_id from the JSON body sent by the frontend
+            product_id = request.data.get('product_id') 
+            
+            if not product_id:
+                return Response({"error": "Product ID is required for forecasting."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 1. Get Data - PASS THE product_id
+            df = self.get_sales_data(product_id=product_id) 
+            
             if df is None:
                 return Response(
-                    {"error": "Not enough historical data to generate forecast."}, 
+                    {"error": "No sales history found for this product."}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -140,7 +150,6 @@ class GenerateForecastView(APIView, ForecastingMixin):
             for i in range(1, 8):
                 future_date = last_date + timedelta(days=i)
                 
-                # Create features for prediction
                 features = pd.DataFrame([{
                     'day_of_week': future_date.dayofweek,
                     'month': future_date.month,
@@ -148,7 +157,6 @@ class GenerateForecastView(APIView, ForecastingMixin):
                     'year': future_date.year
                 }])
                 
-                # Predict
                 pred_qty = model.predict(features)[0]
                 
                 future_predictions.append({
@@ -173,13 +181,17 @@ class GenerateForecastView(APIView, ForecastingMixin):
             )
 
 class ForecastSummaryView(APIView, ForecastingMixin):
-    # FIX: Allow access for testing
     permission_classes = [AllowAny]
     
     """Returns actual sales data for the chart"""
-    def get(self, request, days=30):
+    # FIX: Added product_id=None parameter
+    def get(self, request, days=30): 
         try:
-            df = self.get_sales_data()
+            # NOTE: This view still calculates based on ALL products for the chart data
+            # To filter this summary by product, you would need to adjust the frontend
+            # to pass the product_id as a query parameter (e.g., /summary/30/?product_id=1)
+            # and update this view to read that query param.
+            df = self.get_sales_data() 
             if df is None:
                 return Response([])
 

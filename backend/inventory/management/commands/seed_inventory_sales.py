@@ -5,8 +5,8 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
-# Replace 'products' with the actual name of your app containing models.py
-from products.models import Category, Supplier, Product
+# FIX: Changed 'products' to 'inventory'
+from inventory.models import Category, Supplier, Product 
 
 User = get_user_model()
 
@@ -17,7 +17,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('Starting data injection...'))
 
         # 1. Get or Create a Superuser/Admin to assign as creator
-        # We try to find the first available user, or create a dummy one if none exist.
         admin_user = User.objects.first()
         if not admin_user:
             self.stdout.write(self.style.WARNING('No users found. Creating a default admin user...'))
@@ -37,8 +36,6 @@ class Command(BaseCommand):
             self.stdout.write(f"Created Supplier: {supplier.name}")
 
         # 3. Define Data from your CSV (Unique Products)
-        # I have extracted the unique items and prices from your CSV file.
-        # Format: (Product Name, Category Name, Selling Price)
         csv_data = [
             ("Red Roses Bouquet", "Roses", 899),
             ("Sunflowers", "Sunflowers", 150),
@@ -65,17 +62,16 @@ class Command(BaseCommand):
             cost_price = unit_price * Decimal('0.6')
 
             # D. Create Product
-            # We use update_or_create so we don't duplicate if you run this twice
             product, created = Product.objects.update_or_create(
                 name=prod_name,
                 defaults={
-                    "sku": sku, # Note: If SKU exists this might error, but name lookup protects us here
+                    "sku": sku, 
                     "category": category,
                     "supplier": supplier,
                     "description": f"Beautiful {prod_name} for all occasions.",
                     "unit_price": unit_price,
                     "cost_price": cost_price,
-                    "current_stock": 100, # Initial seed stock
+                    "current_stock": 100, 
                     "reorder_level": 15,
                     "created_by": admin_user,
                     "is_active": True
