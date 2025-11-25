@@ -7,33 +7,31 @@ from django.db.models.functions import TruncDate
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny, IsAuthenticated # FIX: Moved AllowAny import here
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
 from inventory.models import InventoryMovement, Product
+from . import ml_utils # <-- Ensure this import is present
+from .serializers import ProductForecastCreateSerializer # <-- NEW IMPORT
 
 class ForecastingMixin:
-    """Helper class to handle data loading and model training"""
+    """Helper class to handle data loading and model training (General, not product-specific)"""
     
-    # FIX: Added product_id=None to accept the filter from the views
-    def get_sales_data(self, product_id=None): 
-        # 1. FETCH DATA FROM INVENTORY MOVEMENTS
+    # Renaming original get_sales_data to avoid confusion, 
+    # but keeping logic for Dashboard/Summary views.
+    def get_sales_data(self):
+        # 1. FETCH DATA (General, ALL products)
         movements = InventoryMovement.objects.filter(
             movement_type='SALE'
-        )
-        
-        # NEW: Filter by product_id if provided (Crucial Fix)
-        if product_id:
-            # Note: The Product ID passed from the frontend is used here
-            movements = movements.filter(product_id=product_id) 
+        ).values('created_at', 'quantity')
 
-        if not movements.exists(): # Check if the filtered queryset is empty
+        if not movements:
             return None
 
         # 2. CONVERT TO DATAFRAME
-        df = pd.DataFrame(list(movements.values('created_at', 'quantity'))) # Use .values() from filtered queryset
+        df = pd.DataFrame(list(movements))
         
         # 3. PREPROCESS
         df['date'] = pd.to_datetime(df['created_at']).dt.date
@@ -54,6 +52,7 @@ class ForecastingMixin:
         
         return daily_sales
 
+    # This training method is currently unused but left here for structural integrity.
     def train_model(self, df):
         if df is None or len(df) < 10: 
             return None, None
@@ -73,13 +72,15 @@ class ForecastingMixin:
         return model, mae
 
 class ForecastDashboardView(APIView, ForecastingMixin):
+    # FIX: Allow access for testing
     permission_classes = [AllowAny] 
     
     def get(self, request):
+        # ... (Dashboard logic uses get_sales_data which returns aggregate data - this is fine)
         try:
-            # NOTE: This dashboard is currently showing ALL sales data, not filtered by product.
-            df = self.get_sales_data() 
+            df = self.get_sales_data()
             if df is None:
+                # FIX: Returning the structure expected by the frontend
                 return Response({
                     "total_items_sold": 0, 
                     "avg_daily_items": 0, 
@@ -115,83 +116,103 @@ class ForecastDashboardView(APIView, ForecastingMixin):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class GenerateForecastView(APIView, ForecastingMixin):
+
+class GenerateForecastView(APIView): # Removed ForecastingMixin inheritance
+    # FIX: Allow access for testing
     permission_classes = [AllowAny]
     
     def post(self, request):
+        # 1. Validate Input Data
+        serializer = ProductForecastCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            # Returns detailed error messages to the client (400 Bad Request)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        product_id = validated_data.get('product_id')
+        forecast_days = validated_data.get('forecast_days')
+        training_days = validated_data.get('training_days')
+
         try:
-            # NEW: Read product_id from the JSON body sent by the frontend
-            product_id = request.data.get('product_id') 
-            
-            if not product_id:
-                return Response({"error": "Product ID is required for forecasting."}, status=status.HTTP_400_BAD_REQUEST)
+            # Load the product instance for ml_utils
+            product = Product.objects.get(pk=product_id)
+        except Product.DoesNotExist:
+            return Response(
+                {"product_id": f"Product with ID {product_id} not found."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-            # 1. Get Data - PASS THE product_id
-            df = self.get_sales_data(product_id=product_id) 
+        try:
+            # 2. Prepare Data and Train Model (Product-Specific)
+            # Call ml_utils directly to get product-specific data and train Linear Regression model
+            model, scaler, metrics, info = ml_utils.train_linear_regression_model(product, days=training_days)
             
-            if df is None:
-                return Response(
-                    {"error": "No sales history found for this product."}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            # 2. Train Model
-            model, mae = self.train_model(df)
             if model is None:
+                # This catches the "Insufficient sales data" error reported by ml_utils
                 return Response(
-                    {"error": "Insufficient data for training (need at least 10 days of sales)."}, 
+                    {"error": "Insufficient sales data to train a reliable model. Need at least 14 days of sales for this product."}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # 3. Generate Future Dates (Next 7 days)
-            last_date = df['date'].max()
+            # 3. Generate Future Dates and Predict
+            last_date = timezone.now().date()
             future_predictions = []
             
-            for i in range(1, 8):
+            # Get historical quantities for lag features in the prediction function
+            X_all, y_all, dates_all = ml_utils.prepare_training_data(product, days=training_days)
+            historical_data = list(y_all) # Last 'training_days' of sales quantities
+
+            for i in range(1, forecast_days + 1):
                 future_date = last_date + timedelta(days=i)
                 
-                features = pd.DataFrame([{
-                    'day_of_week': future_date.dayofweek,
-                    'month': future_date.month,
-                    'day': future_date.day,
-                    'year': future_date.year
-                }])
-                
-                pred_qty = model.predict(features)[0]
+                # Predict using the specialized ml_utils function
+                pred_qty, confidence_interval = ml_utils.predict_demand(
+                    model=model, 
+                    scaler=scaler, 
+                    product=product,
+                    forecast_date=future_date, 
+                    historical_data=historical_data
+                )
                 
                 future_predictions.append({
                     "date": future_date.strftime("%Y-%m-%d"),
-                    "predicted_amount": round(max(0, pred_qty), 0),
-                    "confidence": "High" if mae < 5 else "Moderate"
+                    "predicted_demand": int(pred_qty),
+                    "confidence_lower": confidence_interval[0],
+                    "confidence_upper": confidence_interval[1],
+                    "model_mae": metrics['mae'],
                 })
 
+                # Append prediction to historical_data to forecast the next day recursively
+                historical_data.append(pred_qty)
+
+
             return Response({
+                "product_id": product_id,
+                "forecast_model_info": metrics,
+                "forecast_days": forecast_days,
                 "forecast": future_predictions,
-                "model_accuracy": {
-                    "mae": round(mae, 2),
-                    "note": f"On average, predictions are off by {round(mae, 1)} units."
-                }
-            })
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            print(f"Error generating forecast: {e}")
+            # This is the last catch-all for unexpected Python errors
+            import traceback
+            traceback.print_exc() 
+            
             return Response(
-                {"error": str(e)}, 
+                {"error": f"Internal Server Error during forecast generation: {str(e)}"}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
 class ForecastSummaryView(APIView, ForecastingMixin):
+    # FIX: Allow access for testing
     permission_classes = [AllowAny]
     
     """Returns actual sales data for the chart"""
-    # FIX: Added product_id=None parameter
-    def get(self, request, days=30): 
+    def get(self, request, days=30):
+        # ... (Summary logic uses get_sales_data which returns aggregate data - this is fine)
         try:
-            # NOTE: This view still calculates based on ALL products for the chart data
-            # To filter this summary by product, you would need to adjust the frontend
-            # to pass the product_id as a query parameter (e.g., /summary/30/?product_id=1)
-            # and update this view to read that query param.
-            df = self.get_sales_data() 
+            df = self.get_sales_data()
             if df is None:
                 return Response([])
 
