@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import reportService from '../services/reportService';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-     ShoppingBag, Package, AlertTriangle, 
+    ShoppingBag, Package, AlertTriangle, 
     Clock, ArrowRight, RefreshCw, ListOrdered,
     Banknote
 } from 'lucide-react';
@@ -341,9 +341,14 @@ const DashboardPage = () => {
                         </thead>
                         <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
                             {recent_transactions?.length > 0 ? (
-                                recent_transactions.slice(0, 7).map((txn) => (
-                                    <TransactionRow key={txn.id} transaction={txn} />
-                                ))
+                                recent_transactions
+                                    // FIX: Sort by Transaction Number Descending (Newest ID first)
+                                    // This fixes the issue where future dates caused sorting errors
+                                    .sort((a, b) => b.transaction_number.localeCompare(a.transaction_number))
+                                    .slice(0, 7)
+                                    .map((txn) => (
+                                        <TransactionRow key={txn.id} transaction={txn} />
+                                    ))
                             ) : (
                                 <tr>
                                     <td colSpan="4" className="px-3 sm:px-4 md:px-6 py-8 sm:py-10 md:py-12 text-center text-gray-500 dark:text-gray-400">

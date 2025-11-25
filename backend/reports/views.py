@@ -75,12 +75,10 @@ class DashboardOverviewView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # --- FIX STARTS HERE ---
         # 1. Get current time in Local Timezone (Asia/Manila)
         now = timezone.localtime(timezone.now())
         
         # 2. Define strict start times (12:00:00 AM) for Today, Week, and Month
-        # This fixes the "0" issue by catching everything AFTER midnight today.
         start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
         start_of_week = start_of_day - timedelta(days=now.weekday()) # Monday of this week
         start_of_month = start_of_day.replace(day=1) # 1st of this month
@@ -88,11 +86,10 @@ class DashboardOverviewView(APIView):
         valid_statuses = ['COMPLETED', 'PAID', 'PENDING', 'Completed', 'Paid']
         base_filter = SalesTransaction.objects.filter(status__in=valid_statuses)
         
-        # 3. Use __gte (Greater Than or Equal) on the timestamp, not the date
+        # 3. Use __gte (Greater Than or Equal) on the timestamp
         today_txns = base_filter.filter(created_at__gte=start_of_day)
         week_txns = base_filter.filter(created_at__gte=start_of_week)
         month_txns = base_filter.filter(created_at__gte=start_of_month)
-        # --- FIX ENDS HERE ---
 
         def get_metrics(txns):
             metrics = txns.aggregate(
@@ -458,12 +455,16 @@ class SimpleReportExport(View):
                 created_at__date__gte=start_date,
                 created_at__date__lte=end_date,
                 status__in=['COMPLETED', 'PAID', 'Completed', 'Paid']
-            ).select_related('created_by')[:50]
+            ).select_related('created_by').order_by('-transaction_number')[:50] 
+            # ^^^ FIX APPLIED: Added .order_by('-transaction_number') to ensure strict numerical sorting
             
             data = [['Date', 'Transaction #', 'Cashier', 'Total Amount', 'Payment']]
             for trans in transactions:
+                # --- TIMEZONE FIX ---
+                local_dt = timezone.localtime(trans.created_at)
+                # ---------------------
                 data.append([
-                    trans.created_at.strftime('%Y-%m-%d %H:%M'),
+                    local_dt.strftime('%Y-%m-%d %H:%M'), 
                     trans.transaction_number,
                     trans.created_by.full_name if trans.created_by else 'Unknown',
                     f"₱{trans.total_amount:,.2f}",
