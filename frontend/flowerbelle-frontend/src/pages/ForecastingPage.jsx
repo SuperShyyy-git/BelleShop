@@ -6,14 +6,14 @@ import toast from 'react-hot-toast';
 
 // --- THEME CONSTANTS ---
 const THEME = {
-    primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
-    headingText: "text-gray-800 dark:text-white",
-    subText: "text-gray-500 dark:text-gray-400",
-    gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
-    pageBg: "bg-gradient-to-br from-white via-[#E5E5E5]/20 to-[#FF69B4]/5 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1A1A1D]",
-    cardBase: "bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80 border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 shadow-xl shadow-[#FF69B4]/5 dark:shadow-black/20 backdrop-blur-sm",
-    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-700 dark:text-gray-200",
-    buttonPrimary: "px-6 py-3 bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white font-bold rounded-xl shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+  primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
+  headingText: "text-gray-800 dark:text-white",
+  subText: "text-gray-500 dark:text-gray-400",
+  gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
+  pageBg: "bg-gradient-to-br from-white via-[#E5E5E5]/20 to-[#FF69B4]/5 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1A1A1D]",
+  cardBase: "bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80 border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 shadow-xl shadow-[#FF69B4]/5 dark:shadow-black/20 backdrop-blur-sm",
+  inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-700 dark:text-gray-200",
+  buttonPrimary: "px-6 py-3 bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white font-bold rounded-xl shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
 };
 
 const ForecastingPage = () => {
@@ -138,6 +138,9 @@ const ForecastingPage = () => {
     }
   };
 
+  // --- NEW: Helper to find current inventory details based on selection ---
+  const currentProductDetails = products.find(p => String(p.id) === String(selectedProduct));
+
   return (
     <div className={`min-h-screen ${THEME.pageBg} p-4 sm:p-6 lg:p-8 transition-colors duration-200`}>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -217,7 +220,8 @@ const ForecastingPage = () => {
                   <Package className="w-6 h-6 text-[#FF69B4]" strokeWidth={1.5} />
                 </div>
                 <p className={`text-3xl font-extrabold ${THEME.headingText}`}>
-                  {forecastSummary.current_stock || 0} <span className={`text-sm font-medium ${THEME.subText}`}>units</span>
+                  {/* UPDATED: Uses inventory data first, then forecast data */}
+                  {currentProductDetails?.current_stock ?? forecastSummary.current_stock ?? 0} <span className={`text-sm font-medium ${THEME.subText}`}>units</span>
                 </p>
               </div>
 
@@ -262,7 +266,10 @@ const ForecastingPage = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className={`${THEME.subText} font-medium`}>Reorder Point:</span>
-                    <span className={`font-extrabold ${THEME.headingText} text-lg`}>{forecastSummary.reorder_level || 0} units</span>
+                    <span className={`font-extrabold ${THEME.headingText} text-lg`}>
+                        {/* UPDATED: Uses inventory data first, then forecast data */}
+                        {currentProductDetails?.reorder_level || forecastSummary.reorder_level || 0} units
+                    </span>
                   </div>
                   <div className="w-full h-0.5 bg-[#E5E5E5] dark:bg-[#FF69B4]/20"></div>
                   <div className="flex justify-between items-center">
