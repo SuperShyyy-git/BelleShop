@@ -6,6 +6,7 @@ from .views import (
     SupplierListCreateView, SupplierDetailView,
     # Products
     ProductListCreateView, ProductDetailView,
+    ProductHistoryView, # ADDED
     # Inventory Movements
     InventoryMovementListCreateView, InventoryMovementDetailView,
     StockAdjustmentView,
@@ -30,6 +31,7 @@ urlpatterns = [
     # Products
     path('products/', ProductListCreateView.as_view(), name='product-list'),
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
+    path('products/<int:pk>/history/', ProductHistoryView.as_view(), name='product-history'), # ADDED
     
     # Inventory Movements
     path('movements/', InventoryMovementListCreateView.as_view(), name='movement-list'),

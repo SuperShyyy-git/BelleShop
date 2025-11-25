@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from accounts.models import User
+from simple_history.models import HistoricalRecords # ADDED
 
 
 class ReportSchedule(models.Model):
@@ -32,6 +33,8 @@ class ReportSchedule(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scheduled_reports')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'report_schedules'
@@ -76,6 +79,8 @@ class ReportExport(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     
+    history = HistoricalRecords() # ADDED
+    
     class Meta:
         db_table = 'report_exports'
         verbose_name = 'Report Export'
@@ -107,6 +112,8 @@ class DashboardMetric(models.Model):
     returning_customers = models.IntegerField(default=0)
     
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'dashboard_metrics'
@@ -150,6 +157,8 @@ class DashboardMetric(models.Model):
         inventory_value = Product.objects.filter(is_active=True).aggregate(
             total=Sum(F('current_stock') * F('cost_price'))
         )['total'] or 0
+        
+        # Customer metrics are not calculated here, remaining fields default to 0
         
         # Create or update metric
         metric, created = cls.objects.update_or_create(

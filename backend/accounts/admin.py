@@ -1,10 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from simple_history.admin import SimpleHistoryAdmin # ADDED
 from .models import User, AuditLog
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin):
+# Use multiple inheritance to get both history and base user fields
+class UserAdmin(SimpleHistoryAdmin, BaseUserAdmin): # CHANGED inheritance order
     list_display = ('username', 'email', 'full_name', 'role', 'is_active', 'date_joined')
     list_filter = ('role', 'is_active', 'date_joined')
     search_fields = ('username', 'email', 'full_name')
@@ -27,11 +29,12 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
+    # This is a custom log table and remains admin.ModelAdmin
     list_display = ('user', 'action', 'table_name', 'timestamp', 'ip_address')
     list_filter = ('action', 'table_name', 'timestamp')
     search_fields = ('user__username', 'table_name', 'description')
     readonly_fields = ('user', 'action', 'table_name', 'record_id', 'old_values', 
-                       'new_values', 'ip_address', 'user_agent', 'timestamp', 'description')
+                        'new_values', 'ip_address', 'user_agent', 'timestamp', 'description')
     ordering = ('-timestamp',)
     
     def has_add_permission(self, request):

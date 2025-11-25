@@ -21,7 +21,7 @@ class ReportExportAdmin(admin.ModelAdmin):
 @admin.register(DashboardMetric)
 class DashboardMetricAdmin(admin.ModelAdmin):
     list_display = ('date', 'daily_sales', 'daily_transactions', 'daily_profit', 
-                   'total_products', 'low_stock_count', 'inventory_value')
+                    'total_products', 'low_stock_count', 'inventory_value')
     list_filter = ('date',)
     date_hierarchy = 'date'
     ordering = ('-date',)

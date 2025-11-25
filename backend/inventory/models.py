@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.db.models import F
+from simple_history.models import HistoricalRecords # ADDED
 
 class Category(models.Model):
     """Product categories (Roses, Tulips, Arrangements, etc.)"""
@@ -11,6 +12,8 @@ class Category(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'categories'
@@ -38,6 +41,8 @@ class Supplier(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'suppliers'
@@ -86,6 +91,8 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='created_products') 
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'products'
@@ -232,6 +239,8 @@ class LowStockAlert(models.Model):
     acknowledged_at = models.DateTimeField(null=True, blank=True)
     acknowledged_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='acknowledged_alerts')
     resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'low_stock_alerts'

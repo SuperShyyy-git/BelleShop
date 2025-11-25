@@ -1,4 +1,5 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin # ADDED
 from .models import SalesTransaction, TransactionItem, Cart, CartItem, PaymentTransaction
 
 
@@ -9,13 +10,13 @@ class TransactionItemInline(admin.TabularInline):
 
 
 @admin.register(SalesTransaction)
-class SalesTransactionAdmin(admin.ModelAdmin):
+class SalesTransactionAdmin(SimpleHistoryAdmin): # CHANGED from admin.ModelAdmin
     list_display = ('transaction_number', 'created_by', 'total_amount', 'payment_method', 
-                   'status', 'created_at', 'item_count')
+                    'status', 'created_at', 'item_count')
     list_filter = ('status', 'payment_method', 'created_at')
     search_fields = ('transaction_number', 'customer_name', 'customer_phone')
     readonly_fields = ('transaction_number', 'created_at', 'updated_at', 'completed_at', 
-                      'voided_by', 'voided_at', 'profit')
+                       'voided_by', 'voided_at', 'profit')
     inlines = [TransactionItemInline]
     ordering = ('-created_at',)
     
@@ -41,7 +42,7 @@ class SalesTransactionAdmin(admin.ModelAdmin):
 
 
 @admin.register(TransactionItem)
-class TransactionItemAdmin(admin.ModelAdmin):
+class TransactionItemAdmin(SimpleHistoryAdmin): # CHANGED from admin.ModelAdmin
     list_display = ('transaction', 'product', 'quantity', 'unit_price', 'line_total')
     list_filter = ('transaction__created_at',)
     search_fields = ('transaction__transaction_number', 'product__name', 'product__sku')
@@ -56,6 +57,7 @@ class CartItemInline(admin.TabularInline):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
+    # Cart is volatile; generally not necessary to audit, so this class remains admin.ModelAdmin
     list_display = ('session_id', 'user', 'is_active', 'item_count', 'subtotal', 'updated_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('session_id', 'user__username')
@@ -64,7 +66,7 @@ class CartAdmin(admin.ModelAdmin):
 
 
 @admin.register(PaymentTransaction)
-class PaymentTransactionAdmin(admin.ModelAdmin):
+class PaymentTransactionAdmin(SimpleHistoryAdmin): # CHANGED from admin.ModelAdmin
     list_display = ('sales_transaction', 'payment_method', 'amount', 'status', 'created_at')
     list_filter = ('payment_method', 'status', 'created_at')
     search_fields = ('sales_transaction__transaction_number', 'reference_number')

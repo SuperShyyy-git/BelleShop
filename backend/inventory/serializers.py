@@ -128,6 +128,27 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         return data
 
 
+class ProductHistorySerializer(serializers.ModelSerializer): 
+    """
+    Serializer for the historical records of the Product model.
+    """
+    history_user_name = serializers.CharField(source='history_user.full_name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Product.history.model 
+        fields = (
+            # Audit Fields
+            'history_id', 'history_date', 'history_type', 'history_user', 'history_user_name',
+            # Core Product Fields
+            'id', 'sku', 'name', 'category', 'category_name', 'supplier', 
+            'unit_price', 'cost_price', 'current_stock', 'reorder_level', 
+            'is_active', 'created_by', 'created_by_name', 'created_at', 'updated_at'
+        )
+        # FIX: Removed invalid 'read_only_fields' assignment
+        
+
 class InventoryMovementSerializer(serializers.ModelSerializer):
     """Serializer for Inventory Movement"""
     product_name = serializers.CharField(source='product.name', read_only=True)

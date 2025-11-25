@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import inventoryService from '../services/inventoryService';
 import { 
     Plus, Edit, Trash2, Search, Package, FolderPlus, 
-    Tags, Truck, Filter, Loader2, X
+    Tags, Truck, Filter, Loader2, X, History 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AddProductModal from '../components/inventory/AddProductModal';
 import CategoryModal from '../components/inventory/CategoryModal';
 import SupplierModal from '../components/inventory/SupplierModal';
+import ProductHistoryModal from '../components/inventory/ProductHistoryModal';
 
 // --- THEME CONSTANTS ---
 const THEME = {
@@ -55,6 +56,9 @@ const InventoryPage = () => {
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false); 
     
+    // State for Audit Trail Modal
+    const [historyModal, setHistoryModal] = useState({ isOpen: false, productId: null, productName: '' }); 
+
     const [productToEdit, setProductToEdit] = useState(null);
     const [categoryToEdit, setCategoryToEdit] = useState(null);
     const [supplierToEdit, setSupplierToEdit] = useState(null);
@@ -112,7 +116,7 @@ const InventoryPage = () => {
     const handleSearchClick = () => { setSearchQuery(searchTerm); };
     const handleClearSearch = () => { setSearchTerm(''); setSearchQuery(''); };
 
-    // --- MUTATIONS ---
+    // --- MUTATIONS (UNCHANGED) ---
     const saveProductMutation = useMutation({
         mutationFn: async ({ id, productData }) => id ? await inventoryService.updateProduct(id, productData) : await inventoryService.createProduct(productData),
         onSuccess: (data, variables) => {
@@ -180,7 +184,7 @@ const InventoryPage = () => {
         onError: (error) => toast.error(getErrorMessage(error))
     });
 
-    // Modal Handlers
+    // --- MODAL HANDLERS ---
     const handleOpenAddProductModal = () => { setProductToEdit(null); setIsProductModalOpen(true); };
     const handleOpenEditProductModal = (product) => { setProductToEdit(product); setIsProductModalOpen(true); };
     const handleCloseProductModal = () => { setIsProductModalOpen(false); setProductToEdit(null); };
@@ -199,6 +203,15 @@ const InventoryPage = () => {
     const handleSaveSupplier = async (supplierData) => { try { await saveSupplierMutation.mutateAsync({ id: supplierToEdit?.id, supplierData }); return true; } catch (error) { return false; } };
     const handleDeleteSupplier = async (id) => { if (!window.confirm('Delete this supplier?')) return; deleteSupplierMutation.mutate(id); };
 
+    // History Modal Handlers
+    const handleOpenHistoryModal = (product) => { 
+        setHistoryModal({ isOpen: true, productId: product.id, productName: product.name }); 
+    };
+    const handleCloseHistoryModal = () => { 
+        setHistoryModal({ isOpen: false, productId: null, productName: '' }); 
+    };
+
+
     if (productsLoading) {
         return (
             <div className={`min-h-screen flex items-center justify-center ${THEME.pageBg}`}>
@@ -214,7 +227,7 @@ const InventoryPage = () => {
         <div className={`min-h-screen ${THEME.pageBg} p-3 sm:p-4 lg:p-6 xl:p-8 transition-colors duration-200`}>
             <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
                 
-                {/* --- HEADER --- */}
+                {/* --- HEADER (UNCHANGED) --- */}
                 <div className="flex flex-col gap-3 sm:gap-4">
                     <div>
                         <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold flex items-center gap-2 sm:gap-3 ${THEME.gradientText}`}>
@@ -242,7 +255,7 @@ const InventoryPage = () => {
                     </div>
                 </div>
 
-                {/* --- VIEW TOGGLE TABS --- */}
+                {/* --- VIEW TOGGLE TABS (UNCHANGED) --- */}
                 <div className="flex p-1 bg-white dark:bg-[#1A1A1D] rounded-xl sm:rounded-2xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 w-full overflow-x-auto shadow-lg shadow-[#FF69B4]/5">
                     <div className="flex w-full min-w-max">
                         {[
@@ -271,7 +284,7 @@ const InventoryPage = () => {
                 {/* ================= PRODUCTS VIEW ================= */}
                 {activeView === 'products' && (
                     <div className="space-y-4 sm:space-y-6">
-                        {/* Search & Filter Bar */}
+                        {/* Search & Filter Bar (UNCHANGED) */}
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4">
                             <div className="relative flex-1 group">
                                 <Search className={`absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isSearching ? THEME.primaryText : 'text-gray-400'}`} />
@@ -339,6 +352,13 @@ const InventoryPage = () => {
                                                 </div>
                                                 
                                                 <div className="flex gap-1.5">
+                                                     <button // UPDATED: Blue Color for Visibility
+                                                        onClick={() => handleOpenHistoryModal(product)} 
+                                                        className="p-2 rounded-lg text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                                                        title="View History"
+                                                    >
+                                                        <History className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                                                    </button>
                                                     <button 
                                                         onClick={() => handleOpenEditProductModal(product)} 
                                                         className="p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all"
@@ -413,6 +433,13 @@ const InventoryPage = () => {
                                                     <td className={`px-6 py-4 font-extrabold ${THEME.primaryText}`}>₱{product.unit_price.toFixed(2)}</td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
+                                                            <button // UPDATED: Blue Color for Visibility
+                                                                onClick={() => handleOpenHistoryModal(product)} 
+                                                                className="p-2 rounded-lg text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                                                                title="View History"
+                                                            >
+                                                                <History size={18} />
+                                                            </button>
                                                             <button 
                                                                 onClick={() => handleOpenEditProductModal(product)} 
                                                                 className={`p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all`}
@@ -447,7 +474,7 @@ const InventoryPage = () => {
                     </div>
                 )}
 
-                {/* ================= CATEGORIES VIEW ================= */}
+                {/* ================= CATEGORIES VIEW (UNCHANGED) ================= */}
                 {activeView === 'categories' && (
                     <>
                         {/* Mobile Card View */}
@@ -564,7 +591,7 @@ const InventoryPage = () => {
                     </>
                 )}
 
-                {/* ================= SUPPLIERS VIEW ================= */}
+                {/* ================= SUPPLIERS VIEW (UNCHANGED) ================= */}
                 {activeView === 'suppliers' && (
                     <>
                         {/* Mobile Card View */}
@@ -615,7 +642,7 @@ const InventoryPage = () => {
                                 ))}
                                 {suppliers.length === 0 && (
                                     <div className="text-center py-12 text-gray-400 dark:text-gray-600">
-                                        <Truck className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 opacity-20" />
+                                        <Truck className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 opacity-50" />
                                         <p className="text-sm sm:text-base font-bold opacity-50">No suppliers found</p>
                                     </div>
                                 )}
@@ -708,6 +735,15 @@ const InventoryPage = () => {
                     onSave={handleSaveSupplier} 
                     supplierToEdit={supplierToEdit} 
                 />
+                
+                {/* History Modal Rendering */}
+                {historyModal.isOpen && (
+                    <ProductHistoryModal
+                        productId={historyModal.productId}
+                        productName={historyModal.productName}
+                        onClose={handleCloseHistoryModal}
+                    />
+                )}
             </div>
         </div>
     );

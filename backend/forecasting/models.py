@@ -3,6 +3,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from inventory.models import Product, Category
 from accounts.models import User
+from simple_history.models import HistoricalRecords # ADDED
 
 
 class ForecastModel(models.Model):
@@ -53,6 +54,8 @@ class ForecastModel(models.Model):
     trained_at = models.DateTimeField(auto_now_add=True)
     last_used = models.DateTimeField(null=True, blank=True)
     
+    history = HistoricalRecords() # ADDED
+    
     class Meta:
         db_table = 'forecast_models'
         verbose_name = 'Forecast Model'
@@ -102,6 +105,8 @@ class ProductForecast(models.Model):
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'product_forecasts'
@@ -158,6 +163,8 @@ class CategoryForecast(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     
+    history = HistoricalRecords() # ADDED
+    
     class Meta:
         db_table = 'category_forecasts'
         verbose_name = 'Category Forecast'
@@ -202,6 +209,8 @@ class SeasonalPattern(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'seasonal_patterns'
@@ -269,6 +278,8 @@ class StockRecommendation(models.Model):
         related_name='acknowledged_recommendations'
     )
     acknowledged_at = models.DateTimeField(null=True, blank=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'stock_recommendations'

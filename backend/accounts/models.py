@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
+from simple_history.models import HistoricalRecords # ADDED
 
 
 class UserManager(BaseUserManager):
@@ -60,6 +61,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email', 'full_name']
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'users'

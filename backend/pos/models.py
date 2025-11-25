@@ -7,6 +7,7 @@ from accounts.models import User
 from inventory.models import Product, InventoryMovement
 from decimal import Decimal
 import traceback 
+from simple_history.models import HistoricalRecords # ADDED
 
 class SalesTransaction(models.Model):
     
@@ -61,6 +62,8 @@ class SalesTransaction(models.Model):
     voided_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='voided_transactions')
     voided_at = models.DateTimeField(null=True, blank=True)
     void_reason = models.TextField(blank=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'sales_transactions'
@@ -232,6 +235,8 @@ class TransactionItem(models.Model):
     
     notes = models.TextField(blank=True, help_text='Special instructions or notes')
     
+    history = HistoricalRecords() # ADDED
+    
     class Meta:
         db_table = 'transaction_items'
         verbose_name = 'Transaction Item'
@@ -352,6 +357,8 @@ class PaymentTransaction(models.Model):
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)
+    
+    history = HistoricalRecords() # ADDED
     
     class Meta:
         db_table = 'payment_transactions'

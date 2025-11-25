@@ -8,16 +8,19 @@ from accounts.permissions import IsOwner, IsOwnerOrReadOnly
 from accounts.utils import create_audit_log
 from django.db import IntegrityError 
 from rest_framework import serializers 
+from rest_framework.pagination import PageNumberPagination # ADDED
+from django.shortcuts import get_object_or_404 # ADDED
 from .models import Category, Supplier, Product, InventoryMovement, LowStockAlert
 from .serializers import (
     CategorySerializer, SupplierSerializer,
     ProductListSerializer, ProductDetailSerializer, ProductCreateUpdateSerializer,
     InventoryMovementSerializer, InventoryMovementCreateSerializer,
-    StockAdjustmentSerializer, LowStockAlertSerializer, InventoryReportSerializer
+    StockAdjustmentSerializer, LowStockAlertSerializer, InventoryReportSerializer,
+    ProductHistorySerializer # ADDED
 )
 
 
-# ========== CATEGORY VIEWS ==========
+# ========== CATEGORY VIEWS (UNCHANGED) ==========
 
 class CategoryListCreateView(generics.ListCreateAPIView):
     """List all categories or create a new one"""
@@ -74,7 +77,7 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
 
-# ========== SUPPLIER VIEWS ==========
+# ========== SUPPLIER VIEWS (UNCHANGED) ==========
 
 class SupplierListCreateView(generics.ListCreateAPIView):
     """List all suppliers or create a new one"""
@@ -132,7 +135,7 @@ class SupplierDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
 
-# ========== PRODUCT VIEWS ==========
+# ========== PRODUCT VIEWS (UNCHANGED) ==========
 
 class ProductListCreateView(generics.ListCreateAPIView):
     """List all products or create a new one"""
@@ -260,7 +263,38 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
 
-# ========== INVENTORY MOVEMENT VIEWS ==========
+# ========== HISTORY VIEWS (NEW) ==========
+
+class StandardResultsPagination(PageNumberPagination): # ADDED
+    """Custom pagination for history list"""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class ProductHistoryView(generics.ListAPIView): # ADDED
+    """
+    Retrieve historical changes for a specific Product.
+    Route: /api/inventory/products/{pk}/history/
+    """
+    serializer_class = ProductHistorySerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsPagination
+    
+    def get_queryset(self):
+        product_pk = self.kwargs['pk']
+        
+        # Ensure the product exists
+        product = get_object_or_404(Product, pk=product_pk)
+        
+        # Use .history.all() to retrieve all historical records
+        # Order by history_date descending to see the latest changes first
+        queryset = product.history.all().select_related('history_user', 'created_by')
+        
+        return queryset
+
+
+# ========== INVENTORY MOVEMENT VIEWS (UNCHANGED) ==========
 
 class InventoryMovementListCreateView(generics.ListCreateAPIView):
     """List all inventory movements or create a new one"""
@@ -368,7 +402,7 @@ class StockAdjustmentView(APIView):
         })
 
 
-# ========== LOW STOCK ALERT VIEWS ==========
+# ========== LOW STOCK ALERT VIEWS (UNCHANGED) ==========
 
 class LowStockAlertListView(generics.ListAPIView):
     """List all low stock alerts"""
@@ -449,7 +483,7 @@ class ResolveAlertView(APIView):
         })
 
 
-# ========== INVENTORY REPORTS ==========
+# ========== INVENTORY REPORTS (UNCHANGED) ==========
 
 class InventoryReportView(APIView):
     """Get comprehensive inventory report"""
