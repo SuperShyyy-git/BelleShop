@@ -89,11 +89,14 @@ WSGI_APPLICATION = 'flowerbelle_backend.wsgi.application'
 EXTERNAL_DB_URL = "postgresql://flowerbelle_db_9lwt_user:fDUORs1PJzDTB5qweIEoaYhqbmoUZrta@dpg-d4i7nf9r0fns73ambql0-a.singapore-postgres.render.com/flowerbelle_db_9lwt"
 
 DATABASES = {
-    'default': dj_database_url.parse(
-        EXTERNAL_DB_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'flowerbelle_db_9lwt',
+        'USER': 'flowerbelle_db_9lwt_user',
+        'PASSWORD': 'fDUORs1PJzDTB5qweIEoaYhqbmoUZrta',
+        'HOST': 'dpg-d4i7nf9r0fns73ambql0-a.singapore-postgres.render.com',
+        'PORT': '5432',
+    }
 }
 
 # Password validation

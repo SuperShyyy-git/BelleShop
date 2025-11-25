@@ -249,10 +249,6 @@ const ForecastingPage = () => {
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-4 bg-white dark:bg-[#1A1A1D] rounded-xl border border-[#E5E5E5] dark:border-[#FF69B4]/10 shadow-sm">
-                    <span className={`${THEME.subText} font-medium`}>Next 14 Days</span>
-                    <span className={`text-lg font-bold ${THEME.primaryText}`}>{forecastSummary.forecast_14_days || 0} units</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-white dark:bg-[#1A1A1D] rounded-xl border border-[#E5E5E5] dark:border-[#FF69B4]/10 shadow-sm">
                     <span className={`${THEME.subText} font-medium`}>Next 30 Days</span>
                     <span className={`text-lg font-bold ${THEME.primaryText}`}>{forecastSummary.forecast_30_days || 0} units</span>
                   </div>
