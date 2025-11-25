@@ -13,14 +13,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
 
 from inventory.models import InventoryMovement, Product
-from . import ml_utils # <-- Ensure this import is present
-from .serializers import ProductForecastCreateSerializer # <-- NEW IMPORT
+from .models import ForecastModel, ProductForecast, StockRecommendation
+from . import ml_utils
+from .serializers import ProductForecastCreateSerializer
+
 
 class ForecastingMixin:
     """Helper class to handle data loading and model training (General, not product-specific)"""
     
-    # Renaming original get_sales_data to avoid confusion, 
-    # but keeping logic for Dashboard/Summary views.
     def get_sales_data(self):
         # 1. FETCH DATA (General, ALL products)
         movements = InventoryMovement.objects.filter(
@@ -52,7 +52,6 @@ class ForecastingMixin:
         
         return daily_sales
 
-    # This training method is currently unused but left here for structural integrity.
     def train_model(self, df):
         if df is None or len(df) < 10: 
             return None, None
@@ -71,16 +70,14 @@ class ForecastingMixin:
         
         return model, mae
 
+
 class ForecastDashboardView(APIView, ForecastingMixin):
-    # FIX: Allow access for testing
     permission_classes = [AllowAny] 
     
     def get(self, request):
-        # ... (Dashboard logic uses get_sales_data which returns aggregate data - this is fine)
         try:
             df = self.get_sales_data()
             if df is None:
-                # FIX: Returning the structure expected by the frontend
                 return Response({
                     "total_items_sold": 0, 
                     "avg_daily_items": 0, 
@@ -117,15 +114,18 @@ class ForecastDashboardView(APIView, ForecastingMixin):
             )
 
 
-class GenerateForecastView(APIView): # Removed ForecastingMixin inheritance
-    # FIX: Allow access for testing
+class GenerateForecastView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        print("\n" + "="*70)
+        print("🚀 GENERATE FORECAST REQUEST RECEIVED")
+        print("="*70)
+        
         # 1. Validate Input Data
         serializer = ProductForecastCreateSerializer(data=request.data)
         if not serializer.is_valid():
-            # Returns detailed error messages to the client (400 Bad Request)
+            print(f"❌ Validation failed: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
@@ -133,39 +133,84 @@ class GenerateForecastView(APIView): # Removed ForecastingMixin inheritance
         forecast_days = validated_data.get('forecast_days')
         training_days = validated_data.get('training_days')
 
+        print(f"📦 Product ID: {product_id}")
+        print(f"📅 Forecast days: {forecast_days}")
+        print(f"📊 Training days: {training_days}")
+
         try:
-            # Load the product instance for ml_utils
             product = Product.objects.get(pk=product_id)
+            print(f"✅ Product found: {product.name} (Stock: {product.current_stock})")
         except Product.DoesNotExist:
+            print(f"❌ Product not found: {product_id}")
             return Response(
                 {"product_id": f"Product with ID {product_id} not found."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            # 2. Prepare Data and Train Model (Product-Specific)
-            # Call ml_utils directly to get product-specific data and train Linear Regression model
+            # 2. Train Model
+            print("\n📈 Training model...")
             model, scaler, metrics, info = ml_utils.train_linear_regression_model(product, days=training_days)
             
             if model is None:
-                # This catches the "Insufficient sales data" error reported by ml_utils
+                print("❌ Model training failed - insufficient data")
                 return Response(
                     {"error": "Insufficient sales data to train a reliable model. Need at least 14 days of sales for this product."}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # 3. Generate Future Dates and Predict
+            print(f"✅ Model trained - Accuracy: {metrics['accuracy']:.2f}%")
+
+            # 3. Create or get ForecastModel record
+            print("\n💾 Saving forecast model to database...")
+            training_start = timezone.now().date() - timedelta(days=training_days)
+            training_end = timezone.now().date()
+            
+            forecast_model, created = ForecastModel.objects.get_or_create(
+                name=f"LR_{product.name}_{timezone.now().strftime('%Y%m%d')}",
+                defaults={
+                    'model_type': 'LINEAR_REGRESSION',
+                    'version': '1.0',
+                    'status': 'ACTIVE',
+                    'parameters': {},
+                    'r2_score': metrics['r2_score'],
+                    'mse': metrics['mse'],
+                    'rmse': metrics['rmse'],
+                    'mae': metrics['mae'],
+                    'accuracy': metrics['accuracy'],
+                    'training_start_date': training_start,
+                    'training_end_date': training_end,
+                    'training_samples': info['training_samples'],
+                    'is_active': True,
+                }
+            )
+            
+            if created:
+                print(f"✅ Created new ForecastModel: {forecast_model.name}")
+            else:
+                print(f"ℹ️ Using existing ForecastModel: {forecast_model.name}")
+
+            # 4. Generate and SAVE Forecasts
+            print(f"\n🔮 Generating {forecast_days} days of forecasts...")
             last_date = timezone.now().date()
             future_predictions = []
             
-            # Get historical quantities for lag features in the prediction function
+            # Get historical data for predictions
             X_all, y_all, dates_all = ml_utils.prepare_training_data(product, days=training_days)
-            historical_data = list(y_all) # Last 'training_days' of sales quantities
+            historical_data = list(y_all)
 
+            # Delete old forecasts for this product
+            deleted_count = ProductForecast.objects.filter(
+                product=product,
+                forecast_date__gte=last_date
+            ).delete()[0]
+            print(f"🗑️ Deleted {deleted_count} old forecasts")
+
+            saved_forecasts = 0
             for i in range(1, forecast_days + 1):
                 future_date = last_date + timedelta(days=i)
                 
-                # Predict using the specialized ml_utils function
+                # Predict
                 pred_qty, confidence_interval = ml_utils.predict_demand(
                     model=model, 
                     scaler=scaler, 
@@ -174,29 +219,85 @@ class GenerateForecastView(APIView): # Removed ForecastingMixin inheritance
                     historical_data=historical_data
                 )
                 
+                # CRITICAL: Save to database
+                product_forecast = ProductForecast.objects.create(
+                    product=product,
+                    forecast_model=forecast_model,
+                    forecast_date=future_date,
+                    predicted_demand=int(pred_qty),
+                    confidence_lower=confidence_interval[0],
+                    confidence_upper=confidence_interval[1],
+                    confidence_level=95.0,
+                    is_peak_season=False,
+                    seasonal_factor=1.0
+                )
+                saved_forecasts += 1
+                
                 future_predictions.append({
+                    "id": product_forecast.id,
                     "date": future_date.strftime("%Y-%m-%d"),
                     "predicted_demand": int(pred_qty),
                     "confidence_lower": confidence_interval[0],
                     "confidence_upper": confidence_interval[1],
-                    "model_mae": metrics['mae'],
                 })
 
-                # Append prediction to historical_data to forecast the next day recursively
+                # Append prediction for next iteration
                 historical_data.append(pred_qty)
 
+            print(f"✅ Saved {saved_forecasts} forecasts to database")
+
+            # 5. Generate Stock Recommendation
+            print("\n💡 Generating stock recommendation...")
+            
+            # Use the first forecast (tomorrow's prediction) for recommendation
+            first_forecast = ProductForecast.objects.filter(
+                product=product,
+                forecast_date=last_date + timedelta(days=1)
+            ).first()
+            
+            if first_forecast:
+                recommendation_data = ml_utils.generate_stock_recommendation(product, first_forecast)
+                
+                # Delete old recommendations
+                StockRecommendation.objects.filter(
+                    product=product,
+                    status='PENDING'
+                ).delete()
+                
+                # Create new recommendation
+                stock_rec = StockRecommendation.objects.create(
+                    product=product,
+                    forecast=first_forecast,
+                    current_stock=product.current_stock,
+                    recommended_order_quantity=recommendation_data['recommended_order_quantity'],
+                    reason=recommendation_data['reason'],
+                    priority=recommendation_data['priority'],
+                    status='PENDING'
+                )
+                print(f"✅ Stock recommendation saved: {stock_rec.priority} priority")
+
+            print("\n" + "="*70)
+            print("✅ FORECAST GENERATION COMPLETE")
+            print("="*70 + "\n")
 
             return Response({
+                "success": True,
+                "message": f"Generated {saved_forecasts} forecasts for {product.name}",
                 "product_id": product_id,
+                "forecast_model_id": forecast_model.id,
                 "forecast_model_info": metrics,
                 "forecast_days": forecast_days,
-                "forecast": future_predictions,
+                "forecasts_saved": saved_forecasts,
+                "forecast": future_predictions[:7],  # Return first 7 days
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            # This is the last catch-all for unexpected Python errors
             import traceback
-            traceback.print_exc() 
+            print("\n" + "="*70)
+            print("❌ ERROR IN FORECAST GENERATION")
+            print("="*70)
+            traceback.print_exc()
+            print("="*70 + "\n")
             
             return Response(
                 {"error": f"Internal Server Error during forecast generation: {str(e)}"}, 
@@ -204,33 +305,74 @@ class GenerateForecastView(APIView): # Removed ForecastingMixin inheritance
             )
 
 
-class ForecastSummaryView(APIView, ForecastingMixin):
-    # FIX: Allow access for testing
+class ForecastSummaryView(APIView):
     permission_classes = [AllowAny]
     
-    """Returns actual sales data for the chart"""
-    def get(self, request, days=30):
-        # ... (Summary logic uses get_sales_data which returns aggregate data - this is fine)
+    def get(self, request, product_id):
+        """Get forecast summary for a specific product"""
+        print(f"\n🔍 Fetching forecast summary for product ID: {product_id}")
+        
         try:
-            df = self.get_sales_data()
-            if df is None:
-                return Response([])
-
-            # Filter for last X days
-            cutoff_date = pd.to_datetime(timezone.now().date() - timedelta(days=days))
-            df_filtered = df[df['date'] >= cutoff_date]
-
-            result = []
-            for _, row in df_filtered.iterrows():
-                result.append({
-                    "date": row['date'].strftime("%Y-%m-%d"),
-                    "amount": row['total_amount']
-                })
-
+            product = Product.objects.get(id=product_id)
+            
+            # Get the latest forecasts
+            today = timezone.now().date()
+            forecasts_7 = ProductForecast.objects.filter(
+                product=product,
+                forecast_date__gte=today,
+                forecast_date__lte=today + timedelta(days=7)
+            )
+            
+            forecasts_30 = ProductForecast.objects.filter(
+                product=product,
+                forecast_date__gte=today,
+                forecast_date__lte=today + timedelta(days=30)
+            )
+            
+            # Calculate totals
+            demand_7_days = sum(f.predicted_demand for f in forecasts_7) if forecasts_7.exists() else 0
+            demand_30_days = sum(f.predicted_demand for f in forecasts_30) if forecasts_30.exists() else 0
+            
+            # Get latest recommendation
+            latest_rec = StockRecommendation.objects.filter(
+                product=product,
+                status='PENDING'
+            ).order_by('-created_at').first()
+            
+            # Calculate days until stockout
+            if demand_7_days > 0:
+                avg_daily_demand = demand_7_days / 7
+                days_until_stockout = int(product.current_stock / avg_daily_demand) if avg_daily_demand > 0 else 999
+            else:
+                days_until_stockout = 999
+            
+            result = {
+                "product_id": product.id,
+                "product_name": product.name,
+                "product_sku": product.sku,
+                "current_stock": product.current_stock,
+                "forecast_7_days": demand_7_days,
+                "forecast_30_days": demand_30_days,
+                "recommended_order": latest_rec.recommended_order_quantity if latest_rec else 0,
+                "days_until_stockout": days_until_stockout if days_until_stockout < 999 else None,
+                "priority": latest_rec.priority if latest_rec else 'NORMAL',
+                "trend": "stable",
+                "seasonal_impact": "none"
+            }
+            
+            print(f"✅ Summary data: {result}")
             return Response(result)
-
+            
+        except Product.DoesNotExist:
+            print(f"❌ Product {product_id} not found")
+            return Response(
+                {"error": "Product not found"}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
         except Exception as e:
-            print(f"Error fetching summary: {e}")
+            print(f"❌ Error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return Response(
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
