@@ -30,6 +30,8 @@ def prepare_training_data(product, days=90):
     Returns: X (features), y (targets), dates
     """
     try:
+        print(f"🔍 Starting data preparation for product: {product.name} (ID: {product.pk})")
+        
         # 1. Determine the latest sale date in the database for the product
         latest_date_obj = SalesTransaction.objects.filter(
             items__product=product,
@@ -46,7 +48,7 @@ def prepare_training_data(product, days=90):
         # Set start_date based on the required training days (90 days ago)
         start_date = end_date - timedelta(days=days - 1)
         
-        print(f"🔄 Preparing data for range: {start_date} to {end_date}")
+        print(f"📅 Preparing data for range: {start_date} to {end_date}")
 
         # 2. Query TransactionItem and aggregate by date within the determined range
         sales_data = TransactionItem.objects.filter(
@@ -62,8 +64,10 @@ def prepare_training_data(product, days=90):
         
         sales_list = list(sales_data)
         
+        print(f"📊 Found {len(sales_list)} days with sales data")
+        
         if len(sales_list) < 14:  # Need at least 2 weeks of data
-            print(f"⚠️ Insufficient sales data: only {len(sales_list)} days with sales found")
+            print(f"⚠️ Insufficient sales data: only {len(sales_list)} days with sales found (need at least 14)")
             return None, None, None
         
         # 3. Create DataFrame and Feature Engineering
@@ -85,6 +89,8 @@ def prepare_training_data(product, days=90):
         df['date'] = pd.to_datetime(df['date'])
         df = df.set_index('date').reindex(date_range, fill_value=0).reset_index()
         df.columns = ['date', 'quantity']
+        
+        print(f"📈 Total days after filling gaps: {len(df)}")
         
         # Create features
         df['day_of_week'] = df['date'].dt.dayofweek
@@ -112,6 +118,8 @@ def prepare_training_data(product, days=90):
         dates = df['date'].values
         
         print(f"✅ Prepared {len(X)} samples for training, successfully covering {days} days")
+        print(f"📊 Sales range: {y.min():.0f} to {y.max():.0f} units, average: {y.mean():.2f} units/day")
+        
         return X, y, dates
         
     except Exception as e:
@@ -127,6 +135,8 @@ def train_linear_regression_model(product, days=90):
     Returns: model, scaler, metrics, training_info
     """
     try:
+        print(f"\n🤖 Starting model training for product: {product.name}")
+        
         # Prepare data
         X, y, dates = prepare_training_data(product, days)
         
@@ -138,6 +148,8 @@ def train_linear_regression_model(product, days=90):
         split_index = int(len(X) * 0.8)
         X_train, X_test = X[:split_index], X[split_index:]
         y_train, y_test = y[:split_index], y[split_index:]
+        
+        print(f"📊 Training samples: {len(X_train)}, Test samples: {len(X_test)}")
         
         # Scale features
         scaler = StandardScaler()
@@ -178,7 +190,9 @@ def train_linear_regression_model(product, days=90):
             'training_period_days': days
         }
         
-        print(f"✅ Model trained successfully - Accuracy: {accuracy:.2f}%")
+        print(f"✅ Model trained successfully!")
+        print(f"📊 Metrics: RMSE={rmse:.2f}, MAE={mae:.2f}, R²={r2:.3f}, Accuracy={accuracy:.2f}%")
+        
         return model, scaler, metrics, training_info
         
     except Exception as e:
@@ -292,8 +306,20 @@ def generate_stock_recommendation(product, forecast):
     """
     try:
         current_stock = product.current_stock
-        reorder_point = product.reorder_point or 0
+        
+        # CRITICAL FIX: Handle missing reorder_point attribute
+        # Use getattr with fallback to 20% of current stock
+        reorder_point = getattr(product, 'reorder_point', None)
+        if reorder_point is None:
+            reorder_point = int(current_stock * 0.2)
+            print(f"ℹ️ No reorder_point set, using fallback: {reorder_point} (20% of current stock)")
+        
         predicted_demand = forecast.predicted_demand
+        
+        print(f"📊 Stock recommendation calculation:")
+        print(f"   Current stock: {current_stock}")
+        print(f"   Reorder point: {reorder_point}")
+        print(f"   Predicted demand: {predicted_demand}/day")
         
         # Calculate days until stockout
         if predicted_demand > 0:
@@ -318,22 +344,28 @@ def generate_stock_recommendation(product, forecast):
         # Calculate recommended order quantity
         # Order enough for 30 days + safety stock
         safety_stock = int(predicted_demand * 7)  # 1 week safety stock
-        recommended_order = max(0, (predicted_demand * 30) - current_stock + safety_stock)
+        recommended_order = max(0, int((predicted_demand * 30) - current_stock + safety_stock))
         
         reason = f"Current stock: {current_stock}, Predicted demand: {predicted_demand}/day"
         if days_until_stockout < 999:
             reason += f", Days until stockout: {int(days_until_stockout)}"
         
-        return {
+        recommendation = {
             'priority': priority,
             'action': action,
-            'recommended_order_quantity': int(recommended_order),
+            'recommended_order_quantity': recommended_order,
             'reason': reason,
             'days_until_stockout': int(days_until_stockout) if days_until_stockout < 999 else None
         }
         
+        print(f"✅ Recommendation: {priority} - {action}, Order: {recommended_order} units")
+        
+        return recommendation
+        
     except Exception as e:
         print(f"❌ Error generating recommendation: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             'priority': 'LOW',
             'action': 'MONITOR',
