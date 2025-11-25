@@ -6,63 +6,67 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from django.utils import timezone
-from django.db.models import Sum, Count
+from django.db.models import Sum, Max
+from django.db.models.functions import TruncDate
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 import pickle
 
+# Import models directly
+from pos.models import SalesTransaction, TransactionItem
+from inventory.models import Product
+
 
 def get_transaction_model():
     """
-    Import the SalesTransaction model from pos app
+    Helper function retained for backward compatibility
     """
-    try:
-        from pos.models import SalesTransaction
-        print(f"✅ Found SalesTransaction model in pos.models")
-        return SalesTransaction
-    except ImportError as e:
-        raise ImportError(
-            f"Could not import SalesTransaction from pos.models: {str(e)}"
-        )
+    return SalesTransaction
 
 
 def prepare_training_data(product, days=90):
     """
-    Prepare training data from product sales history
+    Prepare training data from product sales history, using the latest data available.
     Returns: X (features), y (targets), dates
     """
     try:
-        SalesTransaction = get_transaction_model()
+        # 1. Determine the latest sale date in the database for the product
+        latest_date_obj = SalesTransaction.objects.filter(
+            items__product=product,
+            status='COMPLETED'
+        ).aggregate(max_date=Max('created_at'))
+
+        # If no sales data exists for this product, return None
+        if not latest_date_obj['max_date']:
+            print(f"⚠️ No sales data found for product {product.pk}")
+            return None, None, None
+            
+        # Set end_date to the latest sale date (naive date object)
+        end_date = latest_date_obj['max_date'].date()
+        # Set start_date based on the required training days (90 days ago)
+        start_date = end_date - timedelta(days=days - 1)
         
-        end_date = timezone.now().date()
-        start_date = end_date - timedelta(days=days)
-        
-        # Get daily sales data from TransactionItem
-        # We need to import TransactionItem to access the items
-        from pos.models import TransactionItem
-        
-        # Query TransactionItem and aggregate by date
-        from django.db.models.functions import TruncDate
-        
+        print(f"🔄 Preparing data for range: {start_date} to {end_date}")
+
+        # 2. Query TransactionItem and aggregate by date within the determined range
         sales_data = TransactionItem.objects.filter(
             product=product,
             transaction__created_at__date__gte=start_date,
             transaction__created_at__date__lte=end_date,
-            transaction__status='COMPLETED'  # Only count completed transactions
+            transaction__status='COMPLETED'
         ).annotate(
             date=TruncDate('transaction__created_at')
         ).values('date').annotate(
             total_quantity=Sum('quantity')
         ).order_by('date')
         
-        # Convert to list
         sales_list = list(sales_data)
         
         if len(sales_list) < 14:  # Need at least 2 weeks of data
-            print(f"⚠️ Insufficient sales data: only {len(sales_list)} days found")
+            print(f"⚠️ Insufficient sales data: only {len(sales_list)} days with sales found")
             return None, None, None
         
-        # Create DataFrame with proper error handling
+        # 3. Create DataFrame and Feature Engineering
         dates = []
         quantities = []
         
@@ -107,13 +111,9 @@ def prepare_training_data(product, days=90):
         y = df['quantity'].values
         dates = df['date'].values
         
-        print(f"✅ Prepared {len(X)} samples for training")
+        print(f"✅ Prepared {len(X)} samples for training, successfully covering {days} days")
         return X, y, dates
         
-    except ImportError as ie:
-        print(f"❌ Import error: {str(ie)}")
-        print("Please check that pos.models contains SalesTransaction and TransactionItem")
-        return None, None, None
     except Exception as e:
         print(f"❌ Error preparing training data: {str(e)}")
         import traceback
@@ -250,8 +250,6 @@ def detect_seasonal_patterns(product, days=365):
     Returns: list of seasonal periods
     """
     try:
-        from pos.models import TransactionItem
-        
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
         
