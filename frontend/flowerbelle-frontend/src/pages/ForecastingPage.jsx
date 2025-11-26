@@ -40,6 +40,7 @@ const ForecastingPage = () => {
       
       const productsArray = Array.isArray(prodData) ? prodData : [];
       
+      // Normalize numbers so we don't get string math errors later
       const normalizedProducts = productsArray.map(product => ({
         ...product,
         unit_price: parseFloat(product.unit_price) || 0,
@@ -65,24 +66,18 @@ const ForecastingPage = () => {
     } catch (error) {
       console.error('Error fetching forecast summary:', error);
       setForecastSummary(null);
-      
-      if (error.response?.status === 404) {
-        setForecastError('No forecast available yet. Click "Generate Forecast" to create one.');
-      } else {
-        setForecastError('Failed to load forecast summary.');
-      }
+      // We don't show an error here anymore because the user hasn't clicked Generate yet
     }
   };
 
+  // --- CHANGED: Only clears data, does NOT fetch ---
   const handleProductChange = (e) => {
     const productId = e.target.value;
     setSelectedProduct(productId);
-    setForecastSummary(null);
+    
+    // IMPORTANT: Clear previous results so screen is empty until they click Generate
+    setForecastSummary(null); 
     setForecastError(null);
-
-    if (productId) {
-      fetchForecastSummary(productId);
-    }
   };
 
   const handleGenerateForecast = async () => {
@@ -93,16 +88,25 @@ const ForecastingPage = () => {
 
     setIsGenerating(true);
     setForecastError(null);
+    setForecastSummary(null); // Clear old results while generating new ones
     
     try {
+      // 1. Generate the Forecast
       await forecastingService.generateForecast(
         selectedProduct, 
         30, // forecastDays
-        90  // trainingDays
+        365 // trainingDays
       );
       
+      // 2. Success message
       toast.success('Forecast generated successfully!');
+
+      // 3. Stop loading spinner immediately
+      setIsGenerating(false);
+
+      // 4. NOW fetch the data to display the results
       await fetchForecastSummary(selectedProduct);
+
     } catch (error) {
       console.error('Error generating forecast:', error);
       let errorMessage = 'Failed to generate forecast';
@@ -115,30 +119,39 @@ const ForecastingPage = () => {
       
       setForecastError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setIsGenerating(false);
-    }
+    } 
   };
 
   const getPriorityStyles = (priority) => {
     switch (priority?.toLowerCase()) {
-      case 'high': return 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-800/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50';
-      case 'medium': return 'bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800/50';
-      case 'low': return 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
-      default: return 'bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800 dark:to-gray-900/50 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700';
+      case 'critical': return 'bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-900/20 dark:to-red-800/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50';
+      case 'high': return 'bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800/50';
+      case 'medium': return 'bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-900/20 dark:to-yellow-800/10 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800/50';
+      default: return 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50';
     }
   };
 
   const getPriorityIcon = (priority) => {
     switch (priority?.toLowerCase()) {
+      case 'critical': return <AlertCircle className="w-5 h-5" />;
       case 'high': return <AlertTriangle className="w-5 h-5" />;
       case 'medium': return <Clock className="w-5 h-5" />;
-      case 'low': return <CheckCircle className="w-5 h-5" />;
-      default: return <Package className="w-5 h-5" />;
+      default: return <CheckCircle className="w-5 h-5" />;
     }
   };
 
-  // --- NEW: Helper to find current inventory details based on selection ---
+  const getRecommendationText = (summary) => {
+    if (summary.priority === 'CRITICAL' || summary.priority === 'HIGH') {
+        return `Immediate action required. Order ${summary.recommended_order} units now to avoid running out in ${summary.days_until_stockout} days.`;
+    }
+    if (summary.recommended_order > 0) {
+        return `Monitor closely. Consider ordering ${summary.recommended_order} units soon to maintain safety stock.`;
+    }
+    return "Stock levels are healthy. No immediate reordering required.";
+  };
+
+  // Helper to find current inventory details based on selection
   const currentProductDetails = products.find(p => String(p.id) === String(selectedProduct));
 
   return (
@@ -151,7 +164,7 @@ const ForecastingPage = () => {
             <TrendingUp className={THEME.primaryText} size={32} strokeWidth={2.5} /> Demand Forecasting
           </h1>
           <p className={`text-lg ${THEME.subText} mt-1 ml-1`}>
-            Generate AI-powered demand forecasts to optimize your inventory.
+            Select a product and generate AI-powered demand forecasts.
           </p>
         </div>
 
@@ -206,25 +219,32 @@ const ForecastingPage = () => {
           )}
         </div>
 
-        {/* Forecast Summary */}
+        {/* Forecast Summary - ONLY VISIBLE IF forecastSummary is not null */}
         {forecastSummary && (
           <div className={`rounded-3xl p-7 ${THEME.cardBase} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
-            <h2 className={`text-xl font-bold ${THEME.headingText} mb-6 flex items-center gap-2`}>
-                <TrendingUp className="w-5 h-5 text-[#FF69B4]" /> Forecast Results
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+                 <h2 className={`text-xl font-bold ${THEME.headingText} flex items-center gap-2`}>
+                    <TrendingUp className="w-5 h-5 text-[#FF69B4]" /> Forecast Results
+                 </h2>
+                 <span className="text-xs text-gray-400 font-medium bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+                    Model: {forecastSummary.product_name}
+                 </span>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              
+              {/* Card 1: Current Stock */}
               <div className="rounded-2xl p-6 bg-gradient-to-br from-[#FF69B4]/5 to-[#FF77A9]/10 dark:from-[#FF69B4]/10 dark:to-[#FF77A9]/5 border-2 border-[#FF69B4]/20 dark:border-[#FF69B4]/30 shadow-lg shadow-[#FF69B4]/5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-bold text-[#FF69B4] dark:text-[#FF77A9] uppercase tracking-wider">Current Stock</span>
                   <Package className="w-6 h-6 text-[#FF69B4]" strokeWidth={1.5} />
                 </div>
                 <p className={`text-3xl font-extrabold ${THEME.headingText}`}>
-                  {/* UPDATED: Uses inventory data first, then forecast data */}
                   {currentProductDetails?.current_stock ?? forecastSummary.current_stock ?? 0} <span className={`text-sm font-medium ${THEME.subText}`}>units</span>
                 </p>
               </div>
 
+              {/* Card 2: 7-Day Forecast */}
               <div className="rounded-2xl p-6 bg-gradient-to-br from-yellow-50 to-orange-50/50 dark:from-yellow-900/10 dark:to-orange-900/10 border-2 border-yellow-200 dark:border-yellow-800/40 shadow-lg shadow-yellow-500/5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-wider">7-Day Demand</span>
@@ -235,6 +255,7 @@ const ForecastingPage = () => {
                 </p>
               </div>
 
+              {/* Card 3: Priority */}
               <div className={`rounded-2xl p-6 border-2 shadow-lg ${getPriorityStyles(forecastSummary.priority)}`}>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-bold uppercase tracking-wider opacity-80">Priority Level</span>
@@ -247,6 +268,8 @@ const ForecastingPage = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Extended Forecast */}
               <div className="rounded-2xl p-6 bg-white/50 dark:bg-[#1A1A1D]/50 border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20">
                 <h3 className={`text-xs font-bold ${THEME.subText} uppercase tracking-wider mb-4 flex items-center gap-2`}>
                     <Clock className="w-4 h-4" /> Extended Forecast
@@ -259,40 +282,43 @@ const ForecastingPage = () => {
                 </div>
               </div>
 
+              {/* Inventory Health */}
               <div className="rounded-2xl p-6 bg-white/50 dark:bg-[#1A1A1D]/50 border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20">
                 <h3 className={`text-xs font-bold ${THEME.subText} uppercase tracking-wider mb-4 flex items-center gap-2`}>
                     <Package className="w-4 h-4" /> Inventory Health
                 </h3>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className={`${THEME.subText} font-medium`}>Reorder Point:</span>
+                    <span className={`${THEME.subText} font-medium`}>Recommended Order:</span>
                     <span className={`font-extrabold ${THEME.headingText} text-lg`}>
-                        {/* UPDATED: Uses inventory data first, then forecast data */}
-                        {currentProductDetails?.reorder_level || forecastSummary.reorder_level || 0} units
+                       {forecastSummary.recommended_order || 0} units
                     </span>
                   </div>
                   <div className="w-full h-0.5 bg-[#E5E5E5] dark:bg-[#FF69B4]/20"></div>
                   <div className="flex justify-between items-center">
                     <span className={`${THEME.subText} font-medium`}>Estimated Stockout:</span>
                     <span className={`font-bold px-3 py-1 rounded-lg text-sm border ${forecastSummary.days_until_stockout < 7 ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'}`}>
-                      {forecastSummary.days_until_stockout ? `${forecastSummary.days_until_stockout} days` : 'N/A'}
+                      {forecastSummary.days_until_stockout && forecastSummary.days_until_stockout < 999 
+                        ? `${forecastSummary.days_until_stockout} days` 
+                        : '> 30 days'}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {forecastSummary.recommendation && (
-              <div className="mt-6 p-6 bg-gradient-to-br from-sky-50 to-blue-50/50 dark:from-sky-900/10 dark:to-blue-900/10 border-2 border-sky-100 dark:border-sky-800/40 rounded-2xl flex gap-5 shadow-sm">
+            {/* AI Recommendation Box */}
+            <div className="mt-6 p-6 bg-gradient-to-br from-sky-50 to-blue-50/50 dark:from-sky-900/10 dark:to-blue-900/10 border-2 border-sky-100 dark:border-sky-800/40 rounded-2xl flex gap-5 shadow-sm">
                 <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-sky-500/30">
                     <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
                     <h3 className="text-sm font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wide mb-1.5">AI Recommendation</h3>
-                    <p className="text-sky-900 dark:text-sky-100 leading-relaxed font-medium">{forecastSummary.recommendation}</p>
+                    <p className="text-sky-900 dark:text-sky-100 leading-relaxed font-medium">
+                        {getRecommendationText(forecastSummary)}
+                    </p>
                 </div>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
