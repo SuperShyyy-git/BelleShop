@@ -113,7 +113,11 @@ const ReportsPage = () => {
     const toastId = toast.loading('Generating Report...');
     
     try {
-      const response = await reportService.exportReport('sales', 'PDF', { period });
+      // Pass both period and include_products flag to the backend
+      const response = await reportService.exportReport('sales', 'PDF', { 
+        period,
+        include_products: true  // Request product data to be included
+      });
       
       if (!response || !response.data) {
         throw new Error('No response received from server');
@@ -145,7 +149,7 @@ const ReportsPage = () => {
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success('Report downloaded!', { id: toastId });
+      toast.success('Report with products downloaded!', { id: toastId });
       
     } catch (error) {
       console.error('❌ EXPORT FAILED:', error);

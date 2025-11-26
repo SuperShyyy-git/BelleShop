@@ -347,20 +347,18 @@ class ReportExportListView(generics.ListAPIView):
 
 
 class SimpleReportExport(View):
-    """Simple function-based export that definitely works"""
+    """Simple function-based export with product details"""
     
     def get(self, request, report_type):
         print("\n" + "="*80)
         print(f"✅ SimpleReportExport CALLED! Report type: {report_type}")
         print("="*80 + "\n")
         
-        # Get parameters
         export_format = request.GET.get('format', 'PDF').upper()
         period = request.GET.get('period', 'month')
         
         print(f"Format: {export_format}, Period: {period}")
         
-        # Calculate dates
         today = timezone.localtime(timezone.now()).date()
         
         if period == 'day':
@@ -379,7 +377,6 @@ class SimpleReportExport(View):
             else:
                 end_date = (today.replace(month=today.month + 1, day=1) - timedelta(days=1))
         
-        # Generate the report
         if export_format == 'PDF':
             return self.generate_pdf(report_type, start_date, end_date)
         else:
@@ -389,33 +386,58 @@ class SimpleReportExport(View):
         print(f"Generating PDF for {report_type}...")
         
         buffer = BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        doc = SimpleDocTemplate(buffer, pagesize=letter, 
+                               rightMargin=30, leftMargin=30,
+                               topMargin=30, bottomMargin=30)
         elements = []
         styles = getSampleStyleSheet()
         
         # Title
-        title = Paragraph(f"{report_type.upper()} Report", styles['Title'])
+        title = Paragraph(f"<b>{report_type.upper()} REPORT</b>", styles['Title'])
         elements.append(title)
-        elements.append(Paragraph(f"Period: {start_date} to {end_date}", styles['Normal']))
-        elements.append(Paragraph("<br/><br/>", styles['Normal']))
+        elements.append(Spacer(1, 0.2*inch))
         
-        # Get data
+        period_text = Paragraph(f"<b>Period:</b> {start_date.strftime('%B %d, %Y')} to {end_date.strftime('%B %d, %Y')}", 
+                               styles['Normal'])
+        elements.append(period_text)
+        elements.append(Spacer(1, 0.3*inch))
+        
+        # Get data with enhanced formatting
         data = self.get_report_data(report_type, start_date, end_date)
         
-        # Create table
-        if data:
-            table = Table(data)
+        # Create table with appropriate column widths
+        if data and len(data) > 1:
+            if report_type.lower() == 'sales':
+                # Adjusted column widths for sales report with products
+                col_widths = [1.2*inch, 1.0*inch, 1.2*inch, 2.0*inch, 1.0*inch, 1.0*inch]
+            elif report_type.lower() == 'inventory':
+                col_widths = [2.5*inch, 1.5*inch, 0.8*inch, 1.0*inch, 1.0*inch]
+            else:
+                col_widths = None
+            
+            table = Table(data, colWidths=col_widths)
             table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FF69B4')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ('TOPPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#FFF5FA')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
             elements.append(table)
+        else:
+            elements.append(Paragraph("<i>No data available for this period.</i>", styles['Italic']))
+        
+        # Footer
+        elements.append(Spacer(1, 0.5*inch))
+        footer = Paragraph(f"<i>Generated on: {timezone.localtime(timezone.now()).strftime('%B %d, %Y at %I:%M %p')}</i>", 
+                          styles['Normal'])
+        elements.append(footer)
         
         doc.build(elements)
         pdf_content = buffer.getvalue()
@@ -433,6 +455,11 @@ class SimpleReportExport(View):
         output = StringIO()
         writer = csv.writer(output)
         
+        # Add header information
+        writer.writerow([f"{report_type.upper()} REPORT"])
+        writer.writerow([f"Period: {start_date} to {end_date}"])
+        writer.writerow([])  # Empty row
+        
         data = self.get_report_data(report_type, start_date, end_date)
         for row in data:
             writer.writerow(row)
@@ -447,7 +474,7 @@ class SimpleReportExport(View):
         return response
     
     def get_report_data(self, report_type, start_date, end_date):
-        """Get data based on report type"""
+        """Get data based on report type with product details"""
         report_type_lower = report_type.lower()
         
         if report_type_lower == 'sales':
@@ -455,34 +482,60 @@ class SimpleReportExport(View):
                 created_at__date__gte=start_date,
                 created_at__date__lte=end_date,
                 status__in=['COMPLETED', 'PAID', 'Completed', 'Paid']
-            ).select_related('created_by').order_by('-transaction_number')[:50] 
-            # ^^^ FIX APPLIED: Added .order_by('-transaction_number') to ensure strict numerical sorting
+            ).select_related('created_by').prefetch_related('items__product').order_by('-created_at')[:50]
             
-            data = [['Date', 'Transaction #', 'Cashier', 'Total Amount', 'Payment']]
+            data = [['Date', 'Transaction #', 'Cashier', 'Products', 'Qty', 'Amount']]
+            
             for trans in transactions:
-                # --- TIMEZONE FIX ---
                 local_dt = timezone.localtime(trans.created_at)
-                # ---------------------
-                data.append([
-                    local_dt.strftime('%Y-%m-%d %H:%M'), 
-                    trans.transaction_number,
-                    trans.created_by.full_name if trans.created_by else 'Unknown',
-                    f"₱{trans.total_amount:,.2f}",
-                    trans.payment_method
-                ])
+                
+                # Get all items for this transaction
+                items = trans.items.all()
+                
+                if items:
+                    # Group products into a readable format
+                    product_lines = []
+                    total_qty = 0
+                    
+                    for item in items:
+                        product_lines.append(f"{item.product.name} (x{item.quantity})")
+                        total_qty += item.quantity
+                    
+                    # Join products with line breaks (for PDF) or commas (for CSV)
+                    products_text = "\n".join(product_lines)
+                    
+                    data.append([
+                        local_dt.strftime('%Y-%m-%d\n%H:%M'),
+                        trans.transaction_number,
+                        trans.created_by.full_name if trans.created_by else 'Unknown',
+                        products_text,
+                        str(total_qty),
+                        f"₱{trans.total_amount:,.2f}"
+                    ])
+                else:
+                    # Transaction with no items
+                    data.append([
+                        local_dt.strftime('%Y-%m-%d\n%H:%M'),
+                        trans.transaction_number,
+                        trans.created_by.full_name if trans.created_by else 'Unknown',
+                        'No items',
+                        '0',
+                        f"₱{trans.total_amount:,.2f}"
+                    ])
+            
             return data
         
         elif report_type_lower == 'inventory':
-            products = Product.objects.filter(is_active=True).select_related('category')[:100]
+            products = Product.objects.filter(is_active=True).select_related('category').order_by('name')[:100]
             
-            data = [['Product', 'Category', 'Stock', 'Price', 'Status']]
+            data = [['Product Name', 'Category', 'Stock', 'Price', 'Status']]
             for product in products:
                 status = 'Low Stock' if product.current_stock < 10 else 'In Stock'
                 data.append([
                     product.name,
                     product.category.name if product.category else 'N/A',
                     str(product.current_stock),
-                    f"₱{product.price:,.2f}",
+                    f"₱{product.unit_price:,.2f}",
                     status
                 ])
             return data
@@ -492,13 +545,25 @@ class SimpleReportExport(View):
                 created_at__date__gte=start_date,
                 created_at__date__lte=end_date,
                 status__in=['COMPLETED', 'PAID', 'Completed', 'Paid']
-            )
+            ).prefetch_related('items__product')
             
             total_revenue = transactions.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            
+            # Calculate cost and profit
+            total_cost = 0
+            for trans in transactions:
+                for item in trans.items.all():
+                    total_cost += (item.product.cost_price * item.quantity)
+            
+            total_profit = total_revenue - total_cost
+            profit_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
             
             data = [
                 ['Metric', 'Amount'],
                 ['Total Revenue', f"₱{total_revenue:,.2f}"],
+                ['Total Cost', f"₱{total_cost:,.2f}"],
+                ['Gross Profit', f"₱{total_profit:,.2f}"],
+                ['Profit Margin', f"{profit_margin:.2f}%"],
                 ['Total Transactions', str(transactions.count())],
                 ['Period', f"{start_date} to {end_date}"]
             ]
@@ -507,7 +572,7 @@ class SimpleReportExport(View):
         elif report_type_lower == 'staff':
             staff = User.objects.filter(role='STAFF', is_active=True)
             
-            data = [['Staff Name', 'Transactions', 'Total Sales']]
+            data = [['Staff Name', 'Transactions', 'Items Sold', 'Total Sales']]
             for user in staff:
                 trans = SalesTransaction.objects.filter(
                     created_by=user,
@@ -516,9 +581,14 @@ class SimpleReportExport(View):
                     status__in=['COMPLETED', 'PAID', 'Completed', 'Paid']
                 )
                 total = trans.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+                items_sold = TransactionItem.objects.filter(
+                    transaction__in=trans
+                ).aggregate(Sum('quantity'))['quantity__sum'] or 0
+                
                 data.append([
                     user.full_name,
                     str(trans.count()),
+                    str(items_sold),
                     f"₱{total:,.2f}"
                 ])
             return data
