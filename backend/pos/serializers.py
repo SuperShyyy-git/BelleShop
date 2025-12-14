@@ -31,19 +31,24 @@ class TransactionItemSerializer(serializers.ModelSerializer):
 # SALES TRANSACTION SERIALIZERS
 # ====================
 class SalesTransactionListSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True, default='Unknown')
+    
     class Meta:
         model = SalesTransaction
-        fields = ['id', 'transaction_number', 'customer_name', 'total_amount', 'status', 'payment_method', 'created_at']
+        fields = ['id', 'transaction_number', 'customer_name', 'total_amount', 'status', 'payment_method', 'created_by', 'created_by_name', 'created_at']
 
 
 class SalesTransactionDetailSerializer(serializers.ModelSerializer):
     items = TransactionItemSerializer(many=True, read_only=True)
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True, default='Unknown')
+    voided_by_name = serializers.CharField(source='voided_by.full_name', read_only=True, default=None)
 
     class Meta:
         model = SalesTransaction
         fields = [
             'id', 'transaction_number', 'customer_name', 'customer_phone', 'customer_email',
-            'items', 'total_amount', 'tax', 'discount', 'status', 'payment_method', 'created_by', 'created_at'
+            'items', 'total_amount', 'tax', 'discount', 'status', 'payment_method', 
+            'created_by', 'created_by_name', 'created_at', 'voided_by', 'voided_by_name', 'voided_at', 'void_reason'
         ]
 
 
