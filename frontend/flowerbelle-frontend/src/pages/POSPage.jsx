@@ -155,6 +155,7 @@ const POSPage = () => {
         const product = cart.find(item => item.id === productId);
         if (!product) return;
 
+        // Remove product if quantity is 0 or less
         if (newQuantity <= 0) {
             removeFromCart(productId);
             return;
@@ -327,9 +328,18 @@ const POSPage = () => {
                                                 >
                                                     <Minus className="w-3 h-3 sm:w-4 sm:h-4 mx-auto" />
                                                 </button>
-                                                <div className={`flex-1 text-center font-bold text-xs sm:text-sm ${THEME.primaryText}`}>
-                                                    {inCartQty}
-                                                </div>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={product.current_stock}
+                                                    value={inCartQty}
+                                                    onFocus={(e) => e.target.select()}
+                                                    onChange={(e) => {
+                                                        const val = parseInt(e.target.value) || 0;
+                                                        if (val >= 0) updateQuantity(product.id, val);
+                                                    }}
+                                                    className={`flex-1 text-center font-bold text-xs sm:text-sm w-10 bg-transparent outline-none ${THEME.primaryText} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                                                />
                                                 <button
                                                     onClick={() => updateQuantity(product.id, inCartQty + 1)}
                                                     className={`flex-1 rounded-lg p-1.5 sm:p-2 transition-colors ${THEME.buttonPrimary}`}
@@ -432,9 +442,18 @@ const POSPage = () => {
                                             >
                                                 <Minus className="w-3 h-3" />
                                             </button>
-                                            <span className="w-8 text-center text-sm font-bold text-gray-800 dark:text-white">
-                                                {item.quantity}
-                                            </span>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={item.current_stock}
+                                                value={item.quantity}
+                                                onFocus={(e) => e.target.select()}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value) || 0;
+                                                    if (val >= 0) updateQuantity(item.id, val);
+                                                }}
+                                                className="w-12 text-center text-sm font-bold text-gray-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
                                             <button
                                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                                 disabled={item.quantity >= item.current_stock}
