@@ -196,6 +196,7 @@ const ProfilePage = () => {
             setProfilePicture(null);
             setProfilePicturePreview(null);
             await fetchUserData();
+            await refreshUser(); // Update sidebar profile picture
 
         } catch (error) {
             console.error("Profile update failed:", error.response?.data || error);
