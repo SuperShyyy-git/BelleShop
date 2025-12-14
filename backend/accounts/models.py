@@ -1,7 +1,16 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
-from simple_history.models import HistoricalRecords # ADDED
+from simple_history.models import HistoricalRecords
+import os
+
+
+def get_profile_image_storage():
+    """Return Cloudinary storage if configured, else default"""
+    if os.getenv('CLOUDINARY_CLOUD_NAME'):
+        from cloudinary_storage.storage import MediaCloudinaryStorage
+        return MediaCloudinaryStorage()
+    return None  # Uses default storage
 
 
 class UserManager(BaseUserManager):
@@ -47,6 +56,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     full_name = models.CharField(max_length=255)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='STAFF')
     phone = models.CharField(max_length=20, blank=True, null=True)
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/', 
+        null=True, 
+        blank=True, 
+        storage=get_profile_image_storage()
+    )
     
     # Permissions
     is_active = models.BooleanField(default=True)

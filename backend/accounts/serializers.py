@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'full_name', 'role', 'phone', 
-                  'is_active', 'date_joined', 'last_login')
+                  'profile_picture', 'is_active', 'date_joined', 'last_login')
         read_only_fields = ('id', 'date_joined', 'last_login')
 
 
@@ -43,7 +43,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('email', 'full_name', 'phone', 'is_active', 'role', 'password') 
+        fields = ('email', 'full_name', 'phone', 'profile_picture', 'is_active', 'role', 'password') 
     
     def update(self, instance, validated_data):
         """Custom update logic to hash the password if it's provided."""
@@ -65,7 +65,7 @@ class UserSelfEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         # Restrict fields staff can change themselves
-        fields = ('email', 'full_name', 'phone', 'password') 
+        fields = ('email', 'full_name', 'phone', 'profile_picture', 'password') 
         # Note: role and is_active are omitted
     
     def update(self, instance, validated_data):

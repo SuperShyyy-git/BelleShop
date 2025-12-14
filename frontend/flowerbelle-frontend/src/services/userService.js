@@ -1,12 +1,12 @@
-import api from './api'; 
+import api from './api';
 
 // The base URL for user management (list/create/admin detail)
-const USER_URL = 'auth/users/'; 
+const USER_URL = 'auth/users/';
 // The URL for the current user (self-edit)
-const ME_URL = 'auth/me/'; 
+const ME_URL = 'auth/me/';
 
 const userService = {
-    
+
     // READ: Get all users
     getAllUsers: () => {
         return api.get(USER_URL);
@@ -20,15 +20,15 @@ const userService = {
     // READ: Get user details (Handles both specific ID and 'me')
     getUserDetail: (userId) => {
         if (userId === 'me') {
-            return api.get(ME_URL); 
+            return api.get(ME_URL);
         }
-        return api.get(`${USER_URL}${userId}/`); 
+        return api.get(`${USER_URL}${userId}/`);
     },
 
     // UPDATE: Update a user (Handles both specific ID and 'me')
     updateUser: (userId, userData) => {
         if (userId === 'me') {
-            return api.patch(ME_URL, userData); 
+            return api.patch(ME_URL, userData);
         }
         return api.patch(`${USER_URL}${userId}/`, userData);
     },
@@ -45,6 +45,15 @@ const userService = {
     deleteUser: (userId) => {
         // This was missing before!
         return api.delete(`${USER_URL}${userId}/`);
+    },
+
+    // UPLOAD: Upload profile picture (uses FormData for multipart/form-data)
+    uploadProfilePicture: (file) => {
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+        return api.patch(ME_URL, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
     }
 };
 

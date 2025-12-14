@@ -209,8 +209,16 @@ const Layout = ({ children }) => {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#D4C4B0] dark:border-gray-800 bg-[#FFF8F0]/80 dark:bg-[#1e1e1e]/80">
           <div className="flex items-center justify-between text-[#2F4F4F] dark:text-white">
             <Link to="/profile" className="flex items-center space-x-3 group">
-              <div className="w-8 h-8 bg-[#8FBC8F]/20 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-[#6B8E6B] dark:text-[#8FBC8F]" />
+              <div className="w-8 h-8 bg-[#8FBC8F]/20 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
+                {user?.profile_picture ? (
+                  <img
+                    src={user.profile_picture}
+                    alt={user?.full_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-4 h-4 text-[#6B8E6B] dark:text-[#8FBC8F]" />
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{user?.full_name?.split(' ')[0]}</span>

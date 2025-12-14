@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import userService from '../services/userService';
 import authService from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
 import Loading from '../components/common/Loading';
-import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle, LogOut, X, Check } from 'lucide-react';
+import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle, LogOut, X, Check, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // --- THEME CONSTANTS (Based on Belle Studio Logo Colors - Matching LoginPage) ---
@@ -31,6 +32,7 @@ const THEME = {
 
 const ProfilePage = () => {
     const navigate = useNavigate();
+    const { refreshUser } = useAuth();
     const [userData, setUserData] = useState(null);
     const [formData, setFormData] = useState({
         username: '',
@@ -46,6 +48,8 @@ const ProfilePage = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [phoneError, setPhoneError] = useState('');
+    const [profilePicture, setProfilePicture] = useState(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState(null);
 
     // --- Password Requirements Check ---
     const checkPasswordRequirements = (pwd) => {
@@ -126,6 +130,25 @@ const ProfilePage = () => {
         }
     };
 
+    // --- 2c. Handle Profile Picture Change ---
+    const handleProfilePictureChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                toast.error('Please select an image file.');
+                return;
+            }
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size must be less than 5MB.');
+                return;
+            }
+            setProfilePicture(file);
+            setProfilePicturePreview(URL.createObjectURL(file));
+        }
+    };
+
     // --- 3. Handle Form Submission ---
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -145,30 +168,40 @@ const ProfilePage = () => {
 
         setIsSaving(true);
 
-        const dataToSubmit = {
-            username: formData.username,
-            full_name: formData.full_name,
-            email: formData.email,
-            phone: formData.phone_number,
-        };
-
-        if (formData.password) {
-            dataToSubmit.password = formData.password;
-        }
-
-        console.log("Submitting Profile Update:", dataToSubmit);
-
         try {
+            // First, upload profile picture if changed
+            if (profilePicture) {
+                await userService.uploadProfilePicture(profilePicture);
+            }
+
+            // Then update other profile data
+            const dataToSubmit = {
+                username: formData.username,
+                full_name: formData.full_name,
+                email: formData.email,
+                phone: formData.phone_number,
+            };
+
+            if (formData.password) {
+                dataToSubmit.password = formData.password;
+            }
+
+            console.log("Submitting Profile Update:", dataToSubmit);
+
             await userService.updateUser('me', dataToSubmit);
             toast.success("Profile updated successfully! 💾");
 
+            // Reset states
             setFormData(prev => ({ ...prev, password: '', password_confirm: '' }));
+            setProfilePicture(null);
+            setProfilePicturePreview(null);
             await fetchUserData();
 
         } catch (error) {
             console.error("Profile update failed:", error.response?.data || error);
             const errMsg = error.response?.data?.email?.[0] ||
                 error.response?.data?.password?.[0] ||
+                error.response?.data?.profile_picture?.[0] ||
                 "Failed to save profile. Check data.";
             toast.error(errMsg);
         } finally {
@@ -199,8 +232,40 @@ const ProfilePage = () => {
                     <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
 
                     <div className="flex items-center gap-6 relative z-10">
-                        <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border-2 border-white/30 shadow-inner">
-                            <User className="w-12 h-12 text-white" />
+                        {/* Profile Picture with Upload */}
+                        <div className="relative group">
+                            <input
+                                type="file"
+                                id="profilePictureInput"
+                                accept="image/*"
+                                onChange={handleProfilePictureChange}
+                                className="hidden"
+                            />
+                            <label
+                                htmlFor="profilePictureInput"
+                                className="cursor-pointer block"
+                            >
+                                <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border-2 border-white/30 shadow-inner overflow-hidden transition-all group-hover:border-white/50 group-hover:shadow-lg">
+                                    {profilePicturePreview || userData.profile_picture ? (
+                                        <img
+                                            src={profilePicturePreview || userData.profile_picture}
+                                            alt="Profile"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <User className="w-12 h-12 text-white" />
+                                    )}
+                                </div>
+                                {/* Camera overlay on hover */}
+                                <div className="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Camera className="w-8 h-8 text-white" />
+                                </div>
+                            </label>
+                            {profilePicturePreview && (
+                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center border-2 border-white">
+                                    <Check className="w-3 h-3 text-white" />
+                                </div>
+                            )}
                         </div>
                         <div className="flex-1">
                             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1 text-white tracking-tight">{userData.full_name}</h1>

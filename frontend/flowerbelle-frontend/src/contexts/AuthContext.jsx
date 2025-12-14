@@ -26,10 +26,10 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     const token = Cookies.get('access_token');
-    
+
     if (token) {
       try {
-        const response = await api.get('/auth/me/'); 
+        const response = await api.get('/auth/me/');
         setUser(response.data);
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
         Cookies.remove('refresh_token');
       }
     }
-    
+
     setLoading(false);
   };
 
@@ -51,20 +51,20 @@ export const AuthProvider = ({ children }) => {
       const { access, refresh, user: userData } = response.data;
 
       // 🚨 CRITICAL FIX: Ensure security flags are set for localhost HTTP connection
-      Cookies.set('access_token', access, { 
-          expires: 1, 
-          secure: false, // Set to false for localhost (HTTP)
-          sameSite: 'Lax' 
+      Cookies.set('access_token', access, {
+        expires: 1,
+        secure: false, // Set to false for localhost (HTTP)
+        sameSite: 'Lax'
       });
-      Cookies.set('refresh_token', refresh, { 
-          expires: 7, 
-          secure: false, // Set to false for localhost (HTTP)
-          sameSite: 'Lax' 
+      Cookies.set('refresh_token', refresh, {
+        expires: 7,
+        secure: false, // Set to false for localhost (HTTP)
+        sameSite: 'Lax'
       });
 
       setUser(userData);
       toast.success(`Welcome back, ${userData.full_name}!`);
-      
+
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.detail || 'Invalid credentials or server error.';
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout/'); 
+      await api.post('/auth/logout/');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -89,6 +89,16 @@ export const AuthProvider = ({ children }) => {
   const isOwner = () => user?.role === 'OWNER';
   const isStaff = () => user?.role === 'STAFF';
 
+  // Refresh user data from the API (useful after profile updates)
+  const refreshUser = async () => {
+    try {
+      const response = await api.get('/auth/me/');
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -97,6 +107,7 @@ export const AuthProvider = ({ children }) => {
     isOwner,
     isStaff,
     isAuthenticated: !!user,
+    refreshUser,
   };
 
   return (
