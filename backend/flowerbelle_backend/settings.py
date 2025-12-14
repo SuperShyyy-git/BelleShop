@@ -33,7 +33,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',  # Must come BEFORE staticfiles
     'django.contrib.staticfiles',
+    'cloudinary',
     'django_extensions',
 
     # Third-party apps
@@ -41,8 +43,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'simple_history',
-    'cloudinary_storage',
-    'cloudinary',
 
     # Project apps
     'accounts',
@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'reports',
     'forecasting',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
