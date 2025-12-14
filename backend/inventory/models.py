@@ -3,6 +3,16 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.db.models import F
 from simple_history.models import HistoricalRecords
+import os
+
+# Get the appropriate storage backend for images
+def get_image_storage():
+    """Return Cloudinary storage if configured, else default"""
+    if os.getenv('CLOUDINARY_CLOUD_NAME'):
+        from cloudinary_storage.storage import MediaCloudinaryStorage
+        return MediaCloudinaryStorage()
+    return None  # Uses default storage
+
 
 class Category(models.Model):
     """Product categories (Roses, Tulips, Arrangements, etc.)"""
@@ -79,7 +89,7 @@ class Product(models.Model):
     )
     
     # Product details
-    image = models.ImageField(upload_to='products/', null=True, blank=True)
+    image = models.ImageField(upload_to='products/', null=True, blank=True, storage=get_image_storage())
     barcode = models.CharField(max_length=100, blank=True, unique=True, null=True)
     expiry_date = models.DateField(null=True, blank=True, help_text='For perishable items')
     
