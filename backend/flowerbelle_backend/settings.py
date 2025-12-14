@@ -131,37 +131,55 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # ==========================================
 # CLOUDINARY CONFIGURATION (For Render hosting)
 # ==========================================
-# Use Cloudinary for media storage when environment variables are set
-CLOUDINARY_CLOUD_NAME = os.getenv('CLOUDINARY_CLOUD_NAME')
-CLOUDINARY_API_KEY = os.getenv('CLOUDINARY_API_KEY')
-CLOUDINARY_API_SECRET = os.getenv('CLOUDINARY_API_SECRET')
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
-print(f"[DEBUG] CLOUDINARY_CLOUD_NAME: {CLOUDINARY_CLOUD_NAME}")
-print(f"[DEBUG] CLOUDINARY_API_KEY: {'SET' if CLOUDINARY_API_KEY else 'NOT SET'}")
-print(f"[DEBUG] CLOUDINARY_API_SECRET: {'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
+# Read environment variables
+_CLOUD_NAME = os.getenv('CLOUDINARY_CLOUD_NAME', '')
+_API_KEY = os.getenv('CLOUDINARY_API_KEY', '')
+_API_SECRET = os.getenv('CLOUDINARY_API_SECRET', '')
 
-if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
-    print("[DEBUG] Cloudinary environment variables found - configuring...")
-    # Configure Cloudinary
-    import cloudinary
+# Always print what we found for debugging
+print("=" * 60)
+print("[CLOUDINARY CONFIG]")
+print(f"  CLOUD_NAME: '{_CLOUD_NAME}' (len={len(_CLOUD_NAME)})")
+print(f"  API_KEY: {'SET' if _API_KEY else 'EMPTY'} (len={len(_API_KEY)})")
+print(f"  API_SECRET: {'SET' if _API_SECRET else 'EMPTY'} (len={len(_API_SECRET)})")
+
+if _CLOUD_NAME and _API_KEY and _API_SECRET:
+    print("[CLOUDINARY] Configuring with provided credentials...")
+    
+    # Configure cloudinary SDK directly
     cloudinary.config(
-        cloud_name=CLOUDINARY_CLOUD_NAME,
-        api_key=CLOUDINARY_API_KEY,
-        api_secret=CLOUDINARY_API_SECRET,
+        cloud_name=_CLOUD_NAME,
+        api_key=_API_KEY,
+        api_secret=_API_SECRET,
         secure=True
     )
     
-    # Use Cloudinary for media file storage
+    # Set Django to use Cloudinary for media storage
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     
     CLOUDINARY_STORAGE = {
-        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
-        'API_KEY': CLOUDINARY_API_KEY,
-        'API_SECRET': CLOUDINARY_API_SECRET,
+        'CLOUD_NAME': _CLOUD_NAME,
+        'API_KEY': _API_KEY,
+        'API_SECRET': _API_SECRET,
     }
-    print("[DEBUG] Cloudinary configured successfully!")
+    
+    print("[CLOUDINARY] ✅ Configuration complete!")
+    print(f"[CLOUDINARY] DEFAULT_FILE_STORAGE = {DEFAULT_FILE_STORAGE}")
 else:
-    print("[DEBUG] Cloudinary NOT configured - using local storage")
+    print("[CLOUDINARY] ❌ Missing credentials - using local storage")
+    print(f"  Missing: ", end="")
+    missing = []
+    if not _CLOUD_NAME: missing.append("CLOUD_NAME")
+    if not _API_KEY: missing.append("API_KEY")
+    if not _API_SECRET: missing.append("API_SECRET")
+    print(", ".join(missing))
+
+print("=" * 60)
+
 
 
 
