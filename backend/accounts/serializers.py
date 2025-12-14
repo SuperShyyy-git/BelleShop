@@ -5,12 +5,31 @@ from .models import User, AuditLog
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model (Read-only/Default)"""
+    profile_picture_url = serializers.SerializerMethodField()
     
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'full_name', 'role', 'phone', 
-                  'profile_picture', 'is_active', 'date_joined', 'last_login')
+                  'profile_picture', 'profile_picture_url', 'is_active', 'date_joined', 'last_login')
         read_only_fields = ('id', 'date_joined', 'last_login')
+    
+    def get_profile_picture_url(self, obj):
+        """Get URL for profile picture (supports both local and Cloudinary)"""
+        if obj.profile_picture:
+            try:
+                image_url = obj.profile_picture.url
+                # Cloudinary URLs are already absolute (start with http)
+                if image_url.startswith('http'):
+                    return image_url
+                # For local files, build absolute URI
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(image_url)
+                return image_url
+            except Exception as e:
+                print(f"[USER SERIALIZER] Error getting profile picture URL: {e}")
+                return None
+        return None
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

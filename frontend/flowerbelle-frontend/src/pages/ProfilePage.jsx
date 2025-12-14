@@ -247,9 +247,9 @@ const ProfilePage = () => {
                                 className="cursor-pointer block"
                             >
                                 <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border-2 border-white/30 shadow-inner overflow-hidden transition-all group-hover:border-white/50 group-hover:shadow-lg">
-                                    {profilePicturePreview || userData.profile_picture ? (
+                                    {profilePicturePreview || userData.profile_picture_url ? (
                                         <img
-                                            src={profilePicturePreview || userData.profile_picture}
+                                            src={profilePicturePreview || userData.profile_picture_url}
                                             alt="Profile"
                                             className="w-full h-full object-cover"
                                         />

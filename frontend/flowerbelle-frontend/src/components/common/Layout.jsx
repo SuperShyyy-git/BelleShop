@@ -210,9 +210,9 @@ const Layout = ({ children }) => {
           <div className="flex items-center justify-between text-[#2F4F4F] dark:text-white">
             <Link to="/profile" className="flex items-center space-x-3 group">
               <div className="w-8 h-8 bg-[#8FBC8F]/20 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden">
-                {user?.profile_picture ? (
+                {user?.profile_picture_url ? (
                   <img
-                    src={user.profile_picture}
+                    src={user.profile_picture_url}
                     alt={user?.full_name}
                     className="w-full h-full object-cover"
                   />
