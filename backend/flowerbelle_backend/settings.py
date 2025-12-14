@@ -136,7 +136,12 @@ CLOUDINARY_CLOUD_NAME = os.getenv('CLOUDINARY_CLOUD_NAME')
 CLOUDINARY_API_KEY = os.getenv('CLOUDINARY_API_KEY')
 CLOUDINARY_API_SECRET = os.getenv('CLOUDINARY_API_SECRET')
 
+print(f"[DEBUG] CLOUDINARY_CLOUD_NAME: {CLOUDINARY_CLOUD_NAME}")
+print(f"[DEBUG] CLOUDINARY_API_KEY: {'SET' if CLOUDINARY_API_KEY else 'NOT SET'}")
+print(f"[DEBUG] CLOUDINARY_API_SECRET: {'SET' if CLOUDINARY_API_SECRET else 'NOT SET'}")
+
 if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
+    print("[DEBUG] Cloudinary environment variables found - configuring...")
     # Configure Cloudinary
     import cloudinary
     cloudinary.config(
@@ -154,6 +159,10 @@ if CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET:
         'API_KEY': CLOUDINARY_API_KEY,
         'API_SECRET': CLOUDINARY_API_SECRET,
     }
+    print("[DEBUG] Cloudinary configured successfully!")
+else:
+    print("[DEBUG] Cloudinary NOT configured - using local storage")
+
 
 
 # Default primary key
