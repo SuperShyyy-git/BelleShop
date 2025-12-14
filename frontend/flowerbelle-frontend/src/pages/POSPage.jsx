@@ -7,18 +7,19 @@ import Loading from '../components/common/Loading';
 import CheckoutModal from '../components/pos/CheckoutModal';
 import toast from 'react-hot-toast';
 
-// --- THEME CONSTANTS ---
+// --- THEME CONSTANTS (Based on Belle Studio Logo Colors - Matching LoginPage) ---
 const THEME = {
-    primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
-    headingText: "text-gray-900 dark:text-white",
+    // Logo colors: Sage Green (#8FBC8F), Blush Pink (#F5E6E0), Cream (#FFF8F0)
+    primaryText: "text-[#8FBC8F] dark:text-[#8FBC8F]",
+    headingText: "text-[#2F4F4F] dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
-    gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
-    gradientBg: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9]",
-    pageBg: "bg-gradient-to-br from-white via-[#FFE4E1]/20 to-[#FF69B4]/10 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#2C1A21]",
-    cardBase: "bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#FF69B4]/20 shadow-lg shadow-[#FF69B4]/5 dark:shadow-black/20",
-    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
-    buttonPrimary: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200",
-    buttonIcon: "bg-[#FF69B4]/10 text-[#FF69B4] hover:bg-[#FF69B4]/20 dark:bg-[#FF69B4]/20 dark:text-[#FF77A9] dark:hover:bg-[#FF69B4]/30"
+    gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
+    gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+    pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
+    cardBase: "bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 shadow-xl",
+    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+    buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
+    buttonIcon: "bg-[#8FBC8F]/10 text-[#8FBC8F] hover:bg-[#8FBC8F]/20 dark:bg-[#8FBC8F]/20 dark:text-[#8FBC8F] dark:hover:bg-[#8FBC8F]/30"
 };
 
 const POSPage = () => {
@@ -38,7 +39,7 @@ const POSPage = () => {
             const params = { is_active: true };
             if (searchQuery && searchQuery.trim() !== '') params.search = searchQuery.trim();
             if (selectedCategory && selectedCategory !== '') params.category = selectedCategory;
-            
+
             const res = await inventoryService.getProducts(params);
             const prodData = res.data;
             let normalizedProducts = Array.isArray(prodData) ? prodData : Array.isArray(prodData.results) ? prodData.results : [];
@@ -53,7 +54,7 @@ const POSPage = () => {
                     image_url: p.image_url || null,
                     category_name: p.category_name || 'Uncategorized'
                 }));
-            
+
             if (selectedCategory && selectedCategory !== '') {
                 const categoryId = parseInt(selectedCategory);
                 filteredProducts = filteredProducts.filter(p => {
@@ -101,7 +102,7 @@ const POSPage = () => {
             const paymentMethod = response?.data?.payment_method;
             const paymentReference = response?.data?.payment_reference;
             const transactionId = response?.data?.id || response?.data?.transaction_id;
-            
+
             let transactionNumber;
             if (paymentReference && paymentReference.trim() !== '') {
                 transactionNumber = paymentReference;
@@ -113,10 +114,10 @@ const POSPage = () => {
             } else {
                 transactionNumber = 'COMPLETED';
             }
-            
+
             toast.success(`Transaction completed! Receipt #${transactionNumber}`);
             setCart([]);
-            setIsCheckoutOpen(false);
+            // Don't close checkout modal - let user view the receipt first
             queryClient.invalidateQueries({ queryKey: ['pos-products'] });
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -164,7 +165,7 @@ const POSPage = () => {
             return;
         }
 
-        setCart(cart.map(item => 
+        setCart(cart.map(item =>
             item.id === productId ? { ...item, quantity: newQuantity } : item
         ));
     };
@@ -184,9 +185,9 @@ const POSPage = () => {
         setIsCartPreviewOpen(false);
     };
 
-    const formatCurrency = (val) => new Intl.NumberFormat('en-PH', { 
-        style: 'currency', 
-        currency: 'PHP', 
+    const formatCurrency = (val) => new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(val || 0);
@@ -195,55 +196,55 @@ const POSPage = () => {
 
     return (
         <div className={`flex h-screen overflow-hidden ${THEME.pageBg} relative`}>
-            
+
             {/* --- Main Products Section --- */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                
+            <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${isCartPreviewOpen ? 'mr-0 sm:mr-[340px] md:mr-[380px]' : ''}`}>
+
                 {/* Header & Filters */}
-                <div className="bg-white/80 dark:bg-[#1e1e1e]/90 backdrop-blur-md p-3 sm:p-4 lg:p-6 shadow-sm border-b border-gray-200 dark:border-gray-800 z-10">
-                    <div className="flex items-center justify-between mb-3 sm:mb-4">
-                        <h2 className={`text-xl sm:text-2xl lg:text-3xl font-extrabold flex items-center gap-2 sm:gap-3 ${THEME.gradientText}`}>
-                            <ShoppingBagIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-[#FF69B4]" /> Point of Sale
+                <div className="bg-gradient-to-br from-white to-[#FFF8F0]/50 dark:from-[#1e1e1e] dark:to-[#1A1A1D] backdrop-blur-md p-4 sm:p-5 lg:p-6 shadow-xl border-b-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 z-10">
+                    <div className="flex items-center justify-between mb-4 sm:mb-5">
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-[#8FBC8F] to-[#2E8B57] bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
+                            <ShoppingBagIcon className="w-7 h-7 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-[#8FBC8F]" strokeWidth={2} /> Point of Sale
                         </h2>
                     </div>
-                    
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4">
+
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                         {/* Search Input */}
                         <div className="relative flex-1 group">
-                            <Search className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isSearching ? 'text-[#FF69B4]' : 'text-gray-400 group-hover:text-[#FF69B4]'}`} />
+                            <Search className={`absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isSearching ? 'text-[#8FBC8F]' : 'text-gray-400 group-hover:text-[#8FBC8F]'}`} />
                             <input
                                 type="text"
                                 placeholder="Search products..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 onKeyDown={handleSearchKeyDown}
-                                className={`w-full pl-10 sm:pl-12 pr-20 sm:pr-24 py-2 sm:py-2.5 lg:py-3 text-xs sm:text-sm rounded-xl outline-none transition-all shadow-sm ${THEME.inputBase}`}
+                                className="w-full pl-10 sm:pl-12 pr-24 sm:pr-28 py-2.5 sm:py-3 text-sm rounded-xl outline-none transition-all shadow-lg bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400"
                             />
-                            
-                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 sm:gap-2">
+
+                            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                                 {searchTerm && !isSearching && (
-                                    <button 
-                                        onClick={handleClearSearch} 
-                                        className="text-gray-400 hover:text-red-500 p-1 sm:p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    <button
+                                        onClick={handleClearSearch}
+                                        className="text-gray-400 hover:text-red-500 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                     >
-                                        <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        <X className="w-4 h-4" />
                                     </button>
                                 )}
                                 <button
                                     onClick={handleSearchClick}
-                                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold ${THEME.buttonPrimary}`}
+                                    className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 transition-all"
                                 >
                                     Search
                                 </button>
                             </div>
                         </div>
-                        
+
                         {/* Category Filter */}
                         <div className="relative">
                             <select
                                 value={selectedCategory}
                                 onChange={(e) => setSelectedCategory(e.target.value)}
-                                className={`w-full sm:w-auto px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 lg:py-3 pr-8 sm:pr-10 text-xs sm:text-sm rounded-xl outline-none shadow-sm cursor-pointer font-medium ${THEME.inputBase}`}
+                                className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 pr-10 text-sm rounded-xl outline-none shadow-lg cursor-pointer font-medium bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] text-gray-900 dark:text-white"
                             >
                                 <option value="">All Categories</option>
                                 {categories.map((category) => (
@@ -259,12 +260,12 @@ const POSPage = () => {
                     {isSearching && (
                         <div className="absolute inset-0 flex items-center justify-center z-20 bg-white/60 dark:bg-black/60 backdrop-blur-sm">
                             <div className="text-center">
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full animate-spin mx-auto mb-2 sm:mb-3 border-4 border-[#FF69B4]/30 border-t-[#FF69B4]"></div>
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full animate-spin mx-auto mb-2 sm:mb-3 border-4 border-[#8FBC8F]/30 border-t-[#8FBC8F]"></div>
                                 <p className={`text-sm sm:text-base md:text-lg font-bold ${THEME.primaryText}`}>Fetching products...</p>
                             </div>
                         </div>
                     )}
-                    
+
                     {/* Responsive Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4 lg:gap-5 pb-6">
                         {products.map((product) => {
@@ -274,10 +275,10 @@ const POSPage = () => {
                             return (
                                 <div
                                     key={product.id}
-                                    className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 group ${THEME.cardBase} ${isInCart ? 'ring-2 ring-[#FF69B4]' : ''}`}
+                                    className={`rounded-xl sm:rounded-2xl p-2 sm:p-3 md:p-4 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 group ${THEME.cardBase} ${isInCart ? 'ring-2 ring-[#8FBC8F]' : ''}`}
                                 >
                                     {/* Image */}
-                                    <div 
+                                    <div
                                         onClick={() => !isInCart && addToCart(product)}
                                         className={`w-full h-24 sm:h-28 md:h-32 lg:h-36 mb-2 sm:mb-3 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-gray-50 dark:bg-[#1A1A1D] relative ${!isInCart ? 'cursor-pointer' : ''}`}
                                     >
@@ -289,7 +290,7 @@ const POSPage = () => {
                                         {/* Quick Add Overlay */}
                                         {!isInCart && (
                                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <div className="bg-white dark:bg-[#1A1A1D] text-[#FF69B4] p-1.5 sm:p-2 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
+                                                <div className="bg-white dark:bg-[#1A1A1D] text-[#8FBC8F] p-1.5 sm:p-2 rounded-full shadow-lg transform scale-0 group-hover:scale-100 transition-transform">
                                                     <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                                                 </div>
                                             </div>
@@ -304,16 +305,15 @@ const POSPage = () => {
                                         <p className={`text-[9px] sm:text-[10px] md:text-xs mb-1.5 sm:mb-2 font-medium ${THEME.subText}`}>
                                             {product.category_name}
                                         </p>
-                                        
+
                                         <div className="flex items-end justify-between mb-2">
                                             <span className={`text-sm sm:text-base md:text-lg font-extrabold ${THEME.primaryText}`}>
                                                 {formatCurrency(product.unit_price)}
                                             </span>
-                                            <span className={`text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 rounded-md uppercase tracking-wider ${
-                                                product.current_stock <= product.reorder_level 
-                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' 
+                                            <span className={`text-[8px] sm:text-[9px] md:text-[10px] font-bold px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 rounded-md uppercase tracking-wider ${product.current_stock <= product.reorder_level
+                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
                                                 : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            }`}>
+                                                }`}>
                                                 {product.current_stock} Left
                                             </span>
                                         </div>
@@ -361,138 +361,130 @@ const POSPage = () => {
                 </div>
             </div>
 
-            {/* --- Floating Cart Icon Button --- */}
-            {cart.length > 0 && (
+            {/* --- Floating Cart Icon Button (Hidden when cart panel is open) --- */}
+            {cart.length > 0 && !isCartPreviewOpen && (
                 <button
-                    onClick={() => setIsCartPreviewOpen(!isCartPreviewOpen)}
-                    className={`fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-16 h-16 sm:w-20 sm:h-20 rounded-full ${THEME.buttonPrimary} shadow-2xl hover:scale-110 transition-transform duration-300 flex items-center justify-center z-40 group`}
+                    onClick={() => setIsCartPreviewOpen(true)}
+                    className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#8FBC8F] to-[#2E8B57] shadow-2xl shadow-[#8FBC8F]/50 hover:shadow-[#8FBC8F]/70 hover:scale-110 transition-all duration-300 flex items-center justify-center z-40 group animate-bounce-slow"
                     title="View cart"
+                    style={{ width: '72px', height: '72px' }}
                 >
                     <div className="relative">
-                        <ShoppingCart className="w-7 h-7 sm:w-9 sm:h-9" />
-                        <span className="absolute -top-2 -right-2 bg-white text-[#FF69B4] text-xs sm:text-sm font-bold w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shadow-lg">
-                            {cart.length}
+                        <ShoppingCart className="w-8 h-8 sm:w-9 sm:h-9 text-white" strokeWidth={2} />
+                        <span className="absolute -top-3 -right-3 bg-white text-[#2E8B57] text-sm sm:text-base font-extrabold w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-[#2E8B57]/20">
+                            {cart.reduce((sum, item) => sum + item.quantity, 0)}
                         </span>
                     </div>
                 </button>
             )}
 
-            {/* --- Cart Preview Popup --- */}
+            {/* --- CART SIDE PANEL (Non-blocking - Can still select products) --- */}
             {isCartPreviewOpen && (
-                <>
-                    {/* Backdrop */}
-                    <div 
-                        className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-                        onClick={() => setIsCartPreviewOpen(false)}
-                    />
-                    
-                    {/* Popup */}
-                    <div className="fixed bottom-28 right-6 sm:bottom-32 sm:right-8 w-80 sm:w-96 bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl z-50 flex flex-col max-h-[70vh] border border-gray-200 dark:border-gray-800">
-                        {/* Header */}
-                        <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-br from-white to-[#FFE4E1]/20 dark:from-[#1e1e1e] dark:to-[#2C1A21] rounded-t-2xl flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg shadow-[#FF69B4]/30 ${THEME.gradientBg}`}>
-                                    <ShoppingCart className="w-4 h-4 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className={`font-bold text-lg ${THEME.headingText}`}>Order</h3>
-                                    <p className={`text-xs ${THEME.subText}`}>{cart.length} Items</p>
-                                </div>
+                <div className="fixed top-0 right-0 h-full w-full sm:w-[340px] md:w-[380px] bg-white dark:bg-[#1A1A1D] z-30 shadow-2xl flex flex-col border-l-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 transform transition-transform duration-300">
+
+                    {/* Panel Header */}
+                    <div className="bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-xl">
+                                <ShoppingCart className="w-5 h-5 text-white" />
                             </div>
-                            <button 
-                                onClick={() => setIsCartPreviewOpen(false)}
-                                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                            >
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
-                        </div>
-
-                        {/* Items */}
-                        <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50/50 dark:bg-black/20">
-                            {cart.map((item) => (
-                                <div key={item.id} className="bg-white dark:bg-[#1A1A1D] rounded-lg p-3 border border-gray-100 dark:border-gray-800">
-                                    {/* Item Header */}
-                                    <div className="flex gap-2 mb-2">
-                                        <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden flex-shrink-0">
-                                            {item.image_url ? (
-                                                <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Package className="w-5 h-5 text-gray-300" />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className={`font-bold text-sm line-clamp-1 ${THEME.headingText}`}>{item.name}</h4>
-                                            <p className={`text-xs ${THEME.primaryText} font-bold`}>{formatCurrency(item.unit_price)}</p>
-                                        </div>
-
-                                        <button 
-                                            onClick={() => removeFromCart(item.id)}
-                                            className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-
-                                    {/* Quantity Controls */}
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                            className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg p-2 transition-colors"
-                                        >
-                                            <Minus className="w-4 h-4" />
-                                        </button>
-                                        <div className="flex-1 text-center">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max={item.current_stock}
-                                                value={item.quantity}
-                                                onChange={(e) => {
-                                                    const val = parseInt(e.target.value) || 1;
-                                                    updateQuantity(item.id, val);
-                                                }}
-                                                className={`w-full text-center font-bold text-sm py-1.5 rounded-lg ${THEME.inputBase}`}
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                            className={`rounded-lg p-2 transition-colors ${THEME.buttonPrimary}`}
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                        </button>
-                                        <div className={`text-right font-bold text-sm ${THEME.primaryText} min-w-[80px]`}>
-                                            {formatCurrency(item.unit_price * item.quantity)}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-4 sm:p-5 border-t border-gray-200 dark:border-gray-800 rounded-b-2xl">
-                            <div className="space-y-2 mb-4">
-                                <div className="flex justify-between text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    <span>Subtotal</span>
-                                    <span>{formatCurrency(subtotal)}</span>
-                                </div>
-                                <div className="border-t border-dashed border-gray-300 dark:border-gray-700"></div>
-                                <div className="flex justify-between items-center">
-                                    <span className={`font-bold ${THEME.headingText}`}>Total</span>
-                                    <span className={`text-lg font-extrabold ${THEME.gradientText}`}>{formatCurrency(total)}</span>
-                                </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-white">Your Cart</h2>
+                                <p className="text-white/80 text-xs">{cart.reduce((sum, i) => sum + i.quantity, 0)} items</p>
                             </div>
-                            <button
-                                onClick={openCheckout}
-                                className={`w-full py-2.5 rounded-lg font-bold text-sm shadow-lg ${THEME.buttonPrimary}`}
-                            >
-                                Proceed to Payment
-                            </button>
                         </div>
+                        <button
+                            onClick={() => setIsCartPreviewOpen(false)}
+                            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                        >
+                            <X className="w-4 h-4 text-white" />
+                        </button>
                     </div>
-                </>
+
+                    {/* Cart Items */}
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-50 dark:bg-[#151515]">
+                        {cart.length === 0 ? (
+                            <div className="text-center py-12">
+                                <ShoppingCart className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                                <p className="text-base font-bold text-gray-400 dark:text-gray-500">Cart is empty</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">Click products to add</p>
+                            </div>
+                        ) : (
+                            cart.map((item) => (
+                                <div key={item.id} className="bg-white dark:bg-[#1e1e1e] rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-800">
+                                    {/* Product Name & Remove */}
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-bold text-xs text-gray-800 dark:text-white leading-tight flex-1 pr-2">{item.name}</h3>
+                                        <button
+                                            onClick={() => removeFromCart(item.id)}
+                                            className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-500 hover:bg-red-200 flex items-center justify-center"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    </div>
+
+                                    {/* Price & Quantity */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center bg-gray-100 dark:bg-[#252525] rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#303030]"
+                                            >
+                                                <Minus className="w-3 h-3" />
+                                            </button>
+                                            <span className="w-8 text-center text-sm font-bold text-gray-800 dark:text-white">
+                                                {item.quantity}
+                                            </span>
+                                            <button
+                                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                disabled={item.quantity >= item.current_stock}
+                                                className={`w-8 h-8 flex items-center justify-center ${item.quantity >= item.current_stock
+                                                    ? 'text-gray-300 dark:text-gray-600'
+                                                    : 'text-[#8FBC8F] hover:bg-[#8FBC8F]/20'
+                                                    }`}
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                            </button>
+                                        </div>
+
+                                        <p className="text-base font-bold text-[#8FBC8F]">
+                                            ₱{(item.unit_price * item.quantity).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* Footer - Total & Checkout */}
+                    {cart.length > 0 && (
+                        <div className="border-t border-gray-200 dark:border-gray-800 p-3 bg-white dark:bg-[#1e1e1e]">
+                            {/* Total */}
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Total</span>
+                                <span className="text-xl font-extrabold text-gray-800 dark:text-white">
+                                    ₱{total.toLocaleString()}
+                                </span>
+                            </div>
+
+                            {/* Buttons */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setCart([])}
+                                    className="flex-1 py-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold rounded-xl transition-colors border border-red-200 dark:border-red-800/50 text-sm"
+                                >
+                                    Clear
+                                </button>
+                                <button
+                                    onClick={openCheckout}
+                                    className="flex-[2] py-2.5 rounded-xl bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white font-bold transition-all shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50"
+                                >
+                                    Checkout
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             )}
 
             {/* Checkout Modal */}

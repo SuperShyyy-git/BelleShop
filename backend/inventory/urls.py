@@ -6,13 +6,14 @@ from .views import (
     SupplierListCreateView, SupplierDetailView,
     # Products
     ProductListCreateView, ProductDetailView,
-    ProductHistoryView, # ADDED
+    ProductHistoryView,
     # Inventory Movements
     InventoryMovementListCreateView, InventoryMovementDetailView,
     StockAdjustmentView,
     # Low Stock Alerts
     LowStockAlertListView, LowStockAlertDetailView,
     AcknowledgeAlertView, ResolveAlertView,
+    RecentNotificationsView, # 👈 Import the new view
     # Reports
     InventoryReportView, CategoryReportView
 )
@@ -31,7 +32,7 @@ urlpatterns = [
     # Products
     path('products/', ProductListCreateView.as_view(), name='product-list'),
     path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
-    path('products/<int:pk>/history/', ProductHistoryView.as_view(), name='product-history'), # ADDED
+    path('products/<int:pk>/history/', ProductHistoryView.as_view(), name='product-history'),
     
     # Inventory Movements
     path('movements/', InventoryMovementListCreateView.as_view(), name='movement-list'),
@@ -40,6 +41,9 @@ urlpatterns = [
     
     # Low Stock Alerts
     path('alerts/', LowStockAlertListView.as_view(), name='alert-list'),
+    # 👇 NEW URL for notifications
+    path('notifications/recent/', RecentNotificationsView.as_view(), name='recent-notifications'), 
+    
     path('alerts/<int:pk>/', LowStockAlertDetailView.as_view(), name='alert-detail'),
     path('alerts/<int:pk>/acknowledge/', AcknowledgeAlertView.as_view(), name='alert-acknowledge'),
     path('alerts/<int:pk>/resolve/', ResolveAlertView.as_view(), name='alert-resolve'),

@@ -3,6 +3,6 @@
     "axios": "^1.13.2",
     "js-cookie": "^3.0.5",
     "react-hot-toast": "^2.6.0",
-    "recharts": "^3.4.1"
+    "recharts": "^3.5.1"
   }
 }

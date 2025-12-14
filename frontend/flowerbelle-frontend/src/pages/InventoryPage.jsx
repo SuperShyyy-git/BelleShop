@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import inventoryService from '../services/inventoryService';
-import { 
-    Plus, Edit, Trash2, Search, Package, FolderPlus, 
-    Tags, Truck, Filter, Loader2, X, History 
+import {
+    Plus, Edit, Trash2, Search, Package, FolderPlus,
+    Tags, Truck, Filter, Loader2, X, History,
+    Archive, RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AddProductModal from '../components/inventory/AddProductModal';
@@ -11,20 +13,21 @@ import CategoryModal from '../components/inventory/CategoryModal';
 import SupplierModal from '../components/inventory/SupplierModal';
 import ProductHistoryModal from '../components/inventory/ProductHistoryModal';
 
-// --- THEME CONSTANTS ---
+// --- THEME CONSTANTS (Based on Belle Studio Logo Colors - Matching LoginPage) ---
 const THEME = {
-    primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
-    headingText: "text-gray-800 dark:text-white",
+    // Logo colors: Sage Green (#8FBC8F), Blush Pink (#F5E6E0), Cream (#FFF8F0)
+    primaryText: "text-[#8FBC8F] dark:text-[#8FBC8F]",
+    headingText: "text-[#2F4F4F] dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
-    gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
-    gradientBg: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9]",
-    pageBg: "bg-gradient-to-br from-white via-[#E5E5E5]/20 to-[#FF69B4]/5 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1A1A1D]",
-    cardBase: "bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80 border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 shadow-xl shadow-[#FF69B4]/5 dark:shadow-black/20 backdrop-blur-sm",
-    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-700 dark:text-gray-200",
-    tableHeader: "bg-gradient-to-br from-[#E5E5E5]/50 to-[#E5E5E5]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 text-gray-500 dark:text-gray-400",
-    tableRowHover: "hover:bg-gradient-to-r hover:from-[#FF69B4]/5 hover:to-transparent dark:hover:from-[#FF69B4]/10",
-    buttonOutline: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 text-[#FF69B4] dark:text-[#FF77A9] hover:bg-gradient-to-br hover:from-[#FF69B4]/5 hover:to-[#FF77A9]/5 hover:border-[#FF69B4] dark:hover:border-[#FF77A9] transition-all duration-200 font-medium shadow-sm hover:shadow-lg hover:shadow-[#FF69B4]/20 rounded-xl flex items-center gap-2",
-    buttonPrimary: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white font-bold rounded-xl shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
+    gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
+    gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+    pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
+    cardBase: "bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 shadow-xl",
+    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+    tableHeader: "bg-gradient-to-br from-[#F5E6E0]/50 to-[#E8D5C4]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 text-gray-500 dark:text-gray-400",
+    tableRowHover: "hover:bg-gradient-to-r hover:from-[#8FBC8F]/10 hover:to-transparent dark:hover:from-[#8FBC8F]/10",
+    buttonOutline: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 text-[#8FBC8F] dark:text-[#8FBC8F] hover:bg-gradient-to-br hover:from-[#8FBC8F]/5 hover:to-[#A8D4A8]/5 hover:border-[#8FBC8F] dark:hover:border-[#8FBC8F] transition-all duration-200 font-medium shadow-sm hover:shadow-lg hover:shadow-[#8FBC8F]/20 rounded-xl flex items-center gap-2",
+    buttonPrimary: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white font-bold rounded-xl shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
 };
 
 const getErrorMessage = (error) => {
@@ -46,6 +49,7 @@ const getErrorMessage = (error) => {
 
 const InventoryPage = () => {
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
@@ -54,16 +58,25 @@ const InventoryPage = () => {
 
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-    const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false); 
-    
+    const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+
     // State for Audit Trail Modal
-    const [historyModal, setHistoryModal] = useState({ isOpen: false, productId: null, productName: '' }); 
+    const [historyModal, setHistoryModal] = useState({ isOpen: false, productId: null, productName: '' });
 
     const [productToEdit, setProductToEdit] = useState(null);
     const [categoryToEdit, setCategoryToEdit] = useState(null);
     const [supplierToEdit, setSupplierToEdit] = useState(null);
 
-    const [activeView, setActiveView] = useState('products'); 
+    const [activeView, setActiveView] = useState('products');
+
+    // Read search parameter from URL (for stock alert navigation)
+    useEffect(() => {
+        const searchFromUrl = searchParams.get('search');
+        if (searchFromUrl) {
+            setSearchTerm(searchFromUrl);
+            setSearchQuery(searchFromUrl);
+        }
+    }, [searchParams]);
 
     // --- QUERIES ---
     const { data: categories = [] } = useQuery({
@@ -76,11 +89,18 @@ const InventoryPage = () => {
     });
 
     const { data: productsData, isLoading: productsLoading, isFetching: productsFetching } = useQuery({
-        queryKey: ['inventory', searchQuery, selectedCategory],
+        queryKey: ['inventory', searchQuery, selectedCategory, activeView],
         queryFn: async () => {
+            // Only fetch products if we are in 'products' or 'archived' view
+            if (activeView !== 'products' && activeView !== 'archived') return [];
+
+            // Send is_active=false if we are looking at the Archive tab
+            const isActive = activeView === 'products' ? 'true' : 'false';
+
             const res = await inventoryService.getProducts({
                 search: searchQuery,
                 category: selectedCategory,
+                is_active: isActive
             });
             const prodData = res.data;
             let normalizedProducts = Array.isArray(prodData) ? prodData : Array.isArray(prodData.results) ? prodData.results : [];
@@ -94,9 +114,10 @@ const InventoryPage = () => {
                 category_name: p.category_name || (p.category ? categories.find(c => c.id === p.category)?.name : 'Uncategorized'),
             }));
         },
-        staleTime: 5 * 60 * 1000, 
+        enabled: activeView === 'products' || activeView === 'archived',
+        staleTime: 5 * 60 * 1000,
     });
-    
+
     const products = productsData || [];
 
     const { data: suppliers = [] } = useQuery({
@@ -116,7 +137,7 @@ const InventoryPage = () => {
     const handleSearchClick = () => { setSearchQuery(searchTerm); };
     const handleClearSearch = () => { setSearchTerm(''); setSearchQuery(''); };
 
-    // --- MUTATIONS (UNCHANGED) ---
+    // --- MUTATIONS ---
     const saveProductMutation = useMutation({
         mutationFn: async ({ id, productData }) => id ? await inventoryService.updateProduct(id, productData) : await inventoryService.createProduct(productData),
         onSuccess: (data, variables) => {
@@ -133,7 +154,18 @@ const InventoryPage = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['inventory'] });
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-            toast.success('Product deleted successfully');
+            toast.success('Product moved to Archive');
+        },
+        onError: (error) => toast.error(getErrorMessage(error))
+    });
+
+    // NEW: Restore Mutation
+    const restoreProductMutation = useMutation({
+        mutationFn: async (id) => await inventoryService.restoreProduct(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+            toast.success('Product restored successfully! 🎉');
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
@@ -189,7 +221,18 @@ const InventoryPage = () => {
     const handleOpenEditProductModal = (product) => { setProductToEdit(product); setIsProductModalOpen(true); };
     const handleCloseProductModal = () => { setIsProductModalOpen(false); setProductToEdit(null); };
     const handleSaveProduct = async (productData) => { try { await saveProductMutation.mutateAsync({ id: productToEdit?.id, productData }); return true; } catch (error) { return false; } };
-    const handleDeleteProduct = async (id) => { if (!window.confirm('Are you sure you want to permanently delete this product?')) return; deleteProductMutation.mutate(id); };
+
+    // UPDATED: Confirm archiving
+    const handleDeleteProduct = async (id) => {
+        if (!window.confirm('Move this product to Archive?')) return;
+        deleteProductMutation.mutate(id);
+    };
+
+    // NEW: Handle Restore
+    const handleRestoreProduct = async (id) => {
+        if (!window.confirm('Restore this product to active inventory?')) return;
+        restoreProductMutation.mutate(id);
+    };
 
     const handleOpenAddCategoryModal = () => { setCategoryToEdit(null); setIsCategoryModalOpen(true); };
     const handleOpenEditCategoryModal = (category) => { setCategoryToEdit(category); setIsCategoryModalOpen(true); };
@@ -204,15 +247,15 @@ const InventoryPage = () => {
     const handleDeleteSupplier = async (id) => { if (!window.confirm('Delete this supplier?')) return; deleteSupplierMutation.mutate(id); };
 
     // History Modal Handlers
-    const handleOpenHistoryModal = (product) => { 
-        setHistoryModal({ isOpen: true, productId: product.id, productName: product.name }); 
+    const handleOpenHistoryModal = (product) => {
+        setHistoryModal({ isOpen: true, productId: product.id, productName: product.name });
     };
-    const handleCloseHistoryModal = () => { 
-        setHistoryModal({ isOpen: false, productId: null, productName: '' }); 
+    const handleCloseHistoryModal = () => {
+        setHistoryModal({ isOpen: false, productId: null, productName: '' });
     };
 
 
-    if (productsLoading) {
+    if (productsLoading && activeView !== 'categories' && activeView !== 'suppliers') {
         return (
             <div className={`min-h-screen flex items-center justify-center ${THEME.pageBg}`}>
                 <div className="text-center">
@@ -226,71 +269,77 @@ const InventoryPage = () => {
     return (
         <div className={`min-h-screen ${THEME.pageBg} p-3 sm:p-4 lg:p-6 xl:p-8 transition-colors duration-200`}>
             <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
-                
-                {/* --- HEADER (UNCHANGED) --- */}
-                <div className="flex flex-col gap-3 sm:gap-4">
+
+                {/* --- HEADER --- */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-5">
                     <div>
-                        <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-extrabold flex items-center gap-2 sm:gap-3 ${THEME.gradientText}`}>
-                            <Package className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#FF69B4]" strokeWidth={2.5} /> 
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#8FBC8F] to-[#2E8B57] bg-clip-text text-transparent flex items-center gap-2 sm:gap-3">
+                            <Package className="w-8 h-8 sm:w-10 sm:h-10 text-[#8FBC8F]" strokeWidth={2} />
                             <span className="leading-tight">Inventory</span>
                         </h1>
-                        <p className={`text-sm sm:text-base lg:text-lg ${THEME.subText} mt-1 ml-1`}>Track products, categories, and suppliers.</p>
+                        <p className="text-sm sm:text-base md:text-lg text-[#2F4F4F] dark:text-gray-300 font-medium mt-2">Track products, categories, and suppliers.</p>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 sm:gap-3">
                         <button onClick={handleOpenAddSupplierModal} className={`${THEME.buttonOutline} text-xs sm:text-sm`}>
-                            <Truck className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> 
+                            <Truck className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                             <span className="hidden xs:inline">Supplier</span>
                         </button>
 
                         <button onClick={handleOpenAddCategoryModal} className={`${THEME.buttonOutline} text-xs sm:text-sm`}>
-                            <FolderPlus className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> 
+                            <FolderPlus className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                             <span className="hidden xs:inline">Category</span>
                         </button>
-                        
+
                         <button onClick={handleOpenAddProductModal} className={`${THEME.buttonPrimary} text-xs sm:text-sm`}>
-                            <Plus className="w-[18px] h-[18px] sm:w-5 sm:h-5" strokeWidth={3} /> 
+                            <Plus className="w-[18px] h-[18px] sm:w-5 sm:h-5" strokeWidth={3} />
                             <span>Product</span>
                         </button>
                     </div>
                 </div>
 
-                {/* --- VIEW TOGGLE TABS (UNCHANGED) --- */}
-                <div className="flex p-1 bg-white dark:bg-[#1A1A1D] rounded-xl sm:rounded-2xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 w-full overflow-x-auto shadow-lg shadow-[#FF69B4]/5">
+                {/* --- VIEW TOGGLE TABS (UPDATED) --- */}
+                <div className="flex p-1 bg-white dark:bg-[#1A1A1D] rounded-xl sm:rounded-2xl border-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20 w-full overflow-x-auto shadow-lg shadow-[#8FBC8F]/5">
                     <div className="flex w-full min-w-max">
                         {[
-                            { id: 'products', label: 'Products', icon: Package, count: products.length },
+                            { id: 'products', label: 'Products', icon: Package, count: activeView === 'products' ? products.length : null },
                             { id: 'categories', label: 'Categories', icon: Tags, count: categories.length },
-                            { id: 'suppliers', label: 'Suppliers', icon: Truck, count: suppliers.length }
+                            { id: 'suppliers', label: 'Suppliers', icon: Truck, count: suppliers.length },
+                            { id: 'archived', label: 'Archived', icon: Archive, count: activeView === 'archived' ? products.length : null }
                         ].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveView(tab.id)}
-                                className={`flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                                    activeView === tab.id 
-                                        ? `${THEME.gradientBg} text-white shadow-lg shadow-[#FF69B4]/30` 
-                                        : `${THEME.subText} hover:bg-gray-50 dark:hover:bg-[#1A1A1D]/50`
-                                }`}
+                                className={`flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${activeView === tab.id
+                                    ? `${THEME.gradientBg} text-white shadow-lg shadow-[#8FBC8F]/30`
+                                    : `${THEME.subText} hover:bg-gray-50 dark:hover:bg-[#1A1A1D]/50`
+                                    }`}
                             >
-                                <tab.icon className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]" /> 
+                                <tab.icon className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]" />
                                 <span className="hidden xs:inline">{tab.label}</span>
-                                <span className="xs:hidden">{tab.id === 'products' ? 'Products' : tab.id === 'categories' ? 'Categories' : 'Suppliers'}</span>
-                                <span className="text-[10px] sm:text-xs opacity-80 font-normal">({tab.count})</span>
+                                <span className="xs:hidden">
+                                    {tab.id === 'products' ? 'Products' :
+                                        tab.id === 'categories' ? 'Categories' :
+                                            tab.id === 'suppliers' ? 'Suppliers' : 'Archived'}
+                                </span>
+                                {(tab.count !== null && tab.count !== undefined) && (
+                                    <span className="text-[10px] sm:text-xs opacity-80 font-normal">({tab.count})</span>
+                                )}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* ================= PRODUCTS VIEW ================= */}
-                {activeView === 'products' && (
+                {/* ================= PRODUCTS & ARCHIVED VIEW ================= */}
+                {(activeView === 'products' || activeView === 'archived') && (
                     <div className="space-y-4 sm:space-y-6">
-                        {/* Search & Filter Bar (UNCHANGED) */}
+                        {/* Search & Filter Bar */}
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4">
                             <div className="relative flex-1 group">
                                 <Search className={`absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isSearching ? THEME.primaryText : 'text-gray-400'}`} />
                                 <input
                                     type="text"
-                                    placeholder="Search products..."
+                                    placeholder={activeView === 'archived' ? "Search archived products..." : "Search products..."}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onKeyDown={handleSearchKeyDown}
@@ -316,7 +365,7 @@ const InventoryPage = () => {
                             </div>
                         </div>
 
-                        {/* Products Grid for Mobile, Table for Desktop */}
+                        {/* Products Grid for Mobile */}
                         <div className="block lg:hidden">
                             <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
                                 {products.map((product) => {
@@ -324,9 +373,9 @@ const InventoryPage = () => {
                                     return (
                                         <div key={product.id} className={`${THEME.cardBase} rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-2 sm:space-y-3`}>
                                             <div className="flex gap-3">
-                                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden bg-white dark:bg-[#1A1A1D] border border-[#E5E5E5] dark:border-[#FF69B4]/30 flex items-center justify-center flex-shrink-0">
+                                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg sm:rounded-xl overflow-hidden bg-white dark:bg-[#1A1A1D] border border-[#E5E5E5] dark:border-[#8FBC8F]/30 flex items-center justify-center flex-shrink-0">
                                                     {product.image_url ? (
-                                                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                                                        <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover ${activeView === 'archived' ? 'grayscale' : ''}`} />
                                                     ) : (
                                                         <Package className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                                                     )}
@@ -334,43 +383,59 @@ const InventoryPage = () => {
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className={`font-bold text-sm sm:text-base line-clamp-2 ${THEME.headingText}`}>{product.name}</h3>
                                                     <p className={`text-xs ${THEME.subText} mt-0.5`}>{product.category_name || '—'}</p>
+                                                    {activeView === 'archived' && <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">Archived</span>}
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className={`text-base sm:text-lg font-extrabold ${THEME.primaryText}`}>₱{product.unit_price.toFixed(2)}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border ${
-                                                            isLowStock ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-[#FF69B4]/5 dark:bg-[#FF69B4]/10 text-[#FF69B4] dark:text-[#FF77A9] border-[#FF69B4]/20'
-                                                        }`}>
-                                                            {product.current_stock} in stock
-                                                        </span>
-                                                    </div>
+                                                    {activeView === 'products' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold border ${isLowStock ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-[#8FBC8F]/5 dark:bg-[#8FBC8F]/10 text-[#8FBC8F] dark:text-[#A8D4A8] border-[#8FBC8F]/20'
+                                                                }`}>
+                                                                {product.current_stock} in stock
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                
+
                                                 <div className="flex gap-1.5">
-                                                     <button // UPDATED: Blue Color for Visibility
-                                                        onClick={() => handleOpenHistoryModal(product)} 
+                                                    <button
+                                                        onClick={() => handleOpenHistoryModal(product)}
                                                         className="p-2 rounded-lg text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                                                         title="View History"
                                                     >
                                                         <History className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                                                     </button>
-                                                    <button 
-                                                        onClick={() => handleOpenEditProductModal(product)} 
-                                                        className="p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all"
-                                                    >
-                                                        <Edit className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDeleteProduct(product.id)} 
-                                                        className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
-                                                    >
-                                                        <Trash2 className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
-                                                    </button>
+
+                                                    {/* Conditional Actions */}
+                                                    {activeView === 'products' ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleOpenEditProductModal(product)}
+                                                                className="p-2 rounded-lg text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/10 transition-all"
+                                                            >
+                                                                <Edit className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteProduct(product.id)}
+                                                                className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
+                                                            >
+                                                                <Trash2 className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleRestoreProduct(product.id)}
+                                                            className="p-2 rounded-lg text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex items-center gap-1"
+                                                            title="Restore Product"
+                                                        >
+                                                            <RotateCcw className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -379,7 +444,9 @@ const InventoryPage = () => {
                                 {products.length === 0 && (
                                     <div className="col-span-full text-center py-12 text-gray-400 dark:text-gray-600">
                                         <Package className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 opacity-20" />
-                                        <p className="text-sm sm:text-base font-bold opacity-50">No products found</p>
+                                        <p className="text-sm sm:text-base font-bold opacity-50">
+                                            {activeView === 'archived' ? 'No archived products found' : 'No products found'}
+                                        </p>
                                     </div>
                                 )}
                             </div>
@@ -388,27 +455,27 @@ const InventoryPage = () => {
                         {/* Desktop Table */}
                         <div className={`hidden lg:block overflow-hidden rounded-3xl ${THEME.cardBase}`}>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
+                                <table className="w-full text-left divide-y divide-[#E5E5E5] dark:divide-[#8FBC8F]/20">
                                     <thead className={THEME.tableHeader}>
                                         <tr>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Image</th>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Product</th>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Category</th>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Stock</th>
-                                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Reorder</th>
+                                            {activeView === 'products' && <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Reorder</th>}
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Price</th>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
+                                    <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#8FBC8F]/20">
                                         {products.map((product) => {
                                             const isLowStock = product.current_stock <= product.reorder_level;
                                             return (
-                                                <tr key={product.id} className={`transition-colors duration-200 ${THEME.tableRowHover}`}>
+                                                <tr key={product.id} className={`transition-colors duration-200 ${THEME.tableRowHover} ${activeView === 'archived' ? 'opacity-70 bg-gray-50 dark:bg-[#1A1A1D]/80' : ''}`}>
                                                     <td className="px-6 py-4">
-                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-[#1A1A1D] border border-[#E5E5E5] dark:border-[#FF69B4]/30 flex items-center justify-center">
+                                                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white dark:bg-[#1A1A1D] border border-[#E5E5E5] dark:border-[#8FBC8F]/30 flex items-center justify-center">
                                                             {product.image_url ? (
-                                                                <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                                                                <img src={product.image_url} alt={product.name} className={`w-full h-full object-cover ${activeView === 'archived' ? 'grayscale' : ''}`} />
                                                             ) : (
                                                                 <Package className="w-6 h-6 text-gray-400" />
                                                             )}
@@ -416,44 +483,58 @@ const InventoryPage = () => {
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <p className={`font-bold ${THEME.headingText}`}>{product.name}</p>
+                                                        {activeView === 'archived' && <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">Archived</span>}
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className="px-3 py-1 rounded-full bg-[#E5E5E5]/50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-300 text-xs font-bold border border-[#E5E5E5] dark:border-[#FF69B4]/20">
+                                                        <span className="px-3 py-1 rounded-full bg-[#E5E5E5]/50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-300 text-xs font-bold border border-[#E5E5E5] dark:border-[#8FBC8F]/20">
                                                             {product.category_name || '—'}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`px-3 py-1 rounded-full text-sm font-bold border ${
-                                                            isLowStock ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-[#FF69B4]/5 dark:bg-[#FF69B4]/10 text-[#FF69B4] dark:text-[#FF77A9] border-[#FF69B4]/20'
-                                                        }`}>
+                                                        <span className={`px-3 py-1 rounded-full text-sm font-bold border ${isLowStock ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-[#8FBC8F]/5 dark:bg-[#8FBC8F]/10 text-[#8FBC8F] dark:text-[#A8D4A8] border-[#8FBC8F]/20'
+                                                            }`}>
                                                             {product.current_stock}
                                                         </span>
                                                     </td>
-                                                    <td className={`px-6 py-4 font-semibold ${THEME.subText}`}>{product.reorder_level}</td>
+                                                    {activeView === 'products' && <td className={`px-6 py-4 font-semibold ${THEME.subText}`}>{product.reorder_level}</td>}
                                                     <td className={`px-6 py-4 font-extrabold ${THEME.primaryText}`}>₱{product.unit_price.toFixed(2)}</td>
                                                     <td className="px-6 py-4 text-right">
                                                         <div className="flex items-center justify-end gap-2">
-                                                            <button // UPDATED: Blue Color for Visibility
-                                                                onClick={() => handleOpenHistoryModal(product)} 
+                                                            <button
+                                                                onClick={() => handleOpenHistoryModal(product)}
                                                                 className="p-2 rounded-lg text-blue-500 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
                                                                 title="View History"
                                                             >
                                                                 <History size={18} />
                                                             </button>
-                                                            <button 
-                                                                onClick={() => handleOpenEditProductModal(product)} 
-                                                                className={`p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all`}
-                                                                title="Edit Product"
-                                                            >
-                                                                <Edit size={18} />
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleDeleteProduct(product.id)} 
-                                                                className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
-                                                                title="Delete Product"
-                                                            >
-                                                                <Trash2 size={18} />
-                                                            </button>
+
+                                                            {/* Conditional Actions */}
+                                                            {activeView === 'products' ? (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleOpenEditProductModal(product)}
+                                                                        className={`p-2 rounded-lg text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/10 transition-all`}
+                                                                        title="Edit Product"
+                                                                    >
+                                                                        <Edit size={18} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteProduct(product.id)}
+                                                                        className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
+                                                                        title="Archive Product"
+                                                                    >
+                                                                        <Trash2 size={18} />
+                                                                    </button>
+                                                                </>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={() => handleRestoreProduct(product.id)}
+                                                                    className="px-3 py-1.5 rounded-lg text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 dark:text-green-400 transition-all text-xs font-bold flex items-center gap-1"
+                                                                    title="Restore to Active Inventory"
+                                                                >
+                                                                    <RotateCcw size={14} /> Restore
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -463,7 +544,7 @@ const InventoryPage = () => {
                                             <tr>
                                                 <td colSpan="7" className={`px-6 py-12 text-center ${THEME.subText} italic`}>
                                                     <Package className="w-16 h-16 mx-auto mb-3 opacity-50" />
-                                                    No products found. Adjust your search or filter.
+                                                    {activeView === 'archived' ? 'No archived products found.' : 'No products found. Adjust your search or filter.'}
                                                 </td>
                                             </tr>
                                         )}
@@ -474,9 +555,9 @@ const InventoryPage = () => {
                     </div>
                 )}
 
-                {/* ================= CATEGORIES VIEW (UNCHANGED) ================= */}
+                {/* ================= CATEGORIES VIEW ================= */}
                 {activeView === 'categories' && (
-                    <>
+                    <div className="block">
                         {/* Mobile Card View */}
                         <div className="block lg:hidden">
                             <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -484,26 +565,26 @@ const InventoryPage = () => {
                                     <div key={category.id} className={`${THEME.cardBase} rounded-xl sm:rounded-2xl p-4 sm:p-5 space-y-3`}>
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#FF69B4]/10 dark:bg-[#1A1A1D] border border-[#FF69B4]/20 dark:border-[#FF69B4]/30 flex items-center justify-center flex-shrink-0">
-                                                    <Tags className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF69B4]" />
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#8FBC8F]/10 dark:bg-[#1A1A1D] border border-[#8FBC8F]/20 dark:border-[#8FBC8F]/30 flex items-center justify-center flex-shrink-0">
+                                                    <Tags className="w-5 h-5 sm:w-6 sm:h-6 text-[#8FBC8F]" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className={`font-bold text-sm sm:text-base ${THEME.headingText} truncate`}>{category.name}</h3>
-                                                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#E5E5E5]/50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-300 text-xs font-bold border border-[#E5E5E5] dark:border-[#FF69B4]/20">
+                                                    <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#E5E5E5]/50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-300 text-xs font-bold border border-[#E5E5E5] dark:border-[#8FBC8F]/20">
                                                         {category.product_count || 0} products
                                                     </span>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex gap-1.5 flex-shrink-0">
-                                                <button 
-                                                    onClick={() => handleOpenEditCategoryModal(category)} 
-                                                    className="p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all"
+                                                <button
+                                                    onClick={() => handleOpenEditCategoryModal(category)}
+                                                    className="p-2 rounded-lg text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/10 transition-all"
                                                 >
                                                     <Edit className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleDeleteCategory(category.id)} 
+                                                <button
+                                                    onClick={() => handleDeleteCategory(category.id)}
                                                     className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
                                                     disabled={deleteCategoryMutation.isPending}
                                                 >
@@ -511,7 +592,7 @@ const InventoryPage = () => {
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         {category.description && (
                                             <p className={`text-xs sm:text-sm ${THEME.subText} line-clamp-2`}>{category.description}</p>
                                         )}
@@ -529,7 +610,7 @@ const InventoryPage = () => {
                         {/* Desktop Table */}
                         <div className={`hidden lg:block overflow-hidden rounded-3xl ${THEME.cardBase}`}>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
+                                <table className="w-full text-left divide-y divide-[#E5E5E5] dark:divide-[#8FBC8F]/20">
                                     <thead className={THEME.tableHeader}>
                                         <tr>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Category Name</th>
@@ -538,34 +619,34 @@ const InventoryPage = () => {
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
+                                    <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#8FBC8F]/20">
                                         {categories.map((category) => (
                                             <tr key={category.id} className={`transition-colors duration-200 ${THEME.tableRowHover}`}>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-[#FF69B4]/10 dark:bg-[#1A1A1D] border border-[#FF69B4]/20 dark:border-[#FF69B4]/30 flex items-center justify-center flex-shrink-0">
-                                                            <Tags className="w-5 h-5 text-[#FF69B4]" />
+                                                        <div className="w-10 h-10 rounded-xl bg-[#8FBC8F]/10 dark:bg-[#1A1A1D] border border-[#8FBC8F]/20 dark:border-[#8FBC8F]/30 flex items-center justify-center flex-shrink-0">
+                                                            <Tags className="w-5 h-5 text-[#8FBC8F]" />
                                                         </div>
                                                         <span className={`font-bold ${THEME.headingText}`}>{category.name}</span>
                                                     </div>
                                                 </td>
                                                 <td className={`px-6 py-4 ${THEME.subText} max-w-xs truncate`}>{category.description || '—'}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className="px-3 py-1 rounded-full bg-[#E5E5E5]/50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-300 text-xs font-bold border border-[#E5E5E5] dark:border-[#FF69B4]/20">
+                                                    <span className="px-3 py-1 rounded-full bg-[#E5E5E5]/50 dark:bg-[#1A1A1D] text-gray-600 dark:text-gray-300 text-xs font-bold border border-[#E5E5E5] dark:border-[#8FBC8F]/20">
                                                         {category.product_count || 0} products
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button 
-                                                            onClick={() => handleOpenEditCategoryModal(category)} 
-                                                            className={`p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all`}
+                                                        <button
+                                                            onClick={() => handleOpenEditCategoryModal(category)}
+                                                            className={`p-2 rounded-lg text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/10 transition-all`}
                                                             title="Edit Category"
                                                         >
                                                             <Edit size={18} />
                                                         </button>
-                                                        <button 
-                                                            onClick={() => handleDeleteCategory(category.id)} 
+                                                        <button
+                                                            onClick={() => handleDeleteCategory(category.id)}
                                                             className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
                                                             title="Delete Category"
                                                             disabled={deleteCategoryMutation.isPending}
@@ -588,12 +669,12 @@ const InventoryPage = () => {
                                 </table>
                             </div>
                         </div>
-                    </>
+                    </div>
                 )}
 
-                {/* ================= SUPPLIERS VIEW (UNCHANGED) ================= */}
+                {/* ================= SUPPLIERS VIEW ================= */}
                 {activeView === 'suppliers' && (
-                    <>
+                    <div className="block">
                         {/* Mobile Card View */}
                         <div className="block lg:hidden">
                             <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -601,8 +682,8 @@ const InventoryPage = () => {
                                     <div key={supplier.id} className={`${THEME.cardBase} rounded-xl sm:rounded-2xl p-4 sm:p-5 space-y-3`}>
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[#FF69B4]/10 to-[#FF77A9]/20 dark:bg-[#1A1A1D] border border-[#FF69B4]/20 flex items-center justify-center flex-shrink-0">
-                                                    <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF69B4]" />
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[#8FBC8F]/10 to-[#A8D4A8]/20 dark:bg-[#1A1A1D] border border-[#8FBC8F]/20 flex items-center justify-center flex-shrink-0">
+                                                    <Truck className="w-5 h-5 sm:w-6 sm:h-6 text-[#8FBC8F]" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className={`font-bold text-sm sm:text-base ${THEME.headingText} truncate`}>{supplier.name}</h3>
@@ -611,23 +692,23 @@ const InventoryPage = () => {
                                                     )}
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex gap-1.5 flex-shrink-0">
-                                                <button 
-                                                    onClick={() => handleOpenEditSupplierModal(supplier)} 
-                                                    className="p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all"
+                                                <button
+                                                    onClick={() => handleOpenEditSupplierModal(supplier)}
+                                                    className="p-2 rounded-lg text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/10 transition-all"
                                                 >
                                                     <Edit className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleDeleteSupplier(supplier.id)} 
+                                                <button
+                                                    onClick={() => handleDeleteSupplier(supplier.id)}
                                                     className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
                                                 >
                                                     <Trash2 className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1.5">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Phone:</span>
@@ -652,7 +733,7 @@ const InventoryPage = () => {
                         {/* Desktop Table */}
                         <div className={`hidden lg:block overflow-hidden rounded-3xl ${THEME.cardBase}`}>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
+                                <table className="w-full text-left divide-y divide-[#E5E5E5] dark:divide-[#8FBC8F]/20">
                                     <thead className={THEME.tableHeader}>
                                         <tr>
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Supplier Name</th>
@@ -661,13 +742,13 @@ const InventoryPage = () => {
                                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#FF69B4]/20">
+                                    <tbody className="divide-y divide-[#E5E5E5] dark:divide-[#8FBC8F]/20">
                                         {suppliers.map((supplier) => (
                                             <tr key={supplier.id} className={`transition-colors duration-200 ${THEME.tableRowHover}`}>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF69B4]/10 to-[#FF77A9]/20 dark:bg-[#1A1A1D] border border-[#FF69B4]/20 flex items-center justify-center flex-shrink-0">
-                                                            <Truck className="w-5 h-5 text-[#FF69B4]" />
+                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8FBC8F]/10 to-[#A8D4A8]/20 dark:bg-[#1A1A1D] border border-[#8FBC8F]/20 flex items-center justify-center flex-shrink-0">
+                                                            <Truck className="w-5 h-5 text-[#8FBC8F]" />
                                                         </div>
                                                         <span className={`font-bold ${THEME.headingText}`}>{supplier.name}</span>
                                                     </div>
@@ -681,15 +762,15 @@ const InventoryPage = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button 
-                                                            onClick={() => handleOpenEditSupplierModal(supplier)} 
-                                                            className={`p-2 rounded-lg text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/10 transition-all`}
+                                                        <button
+                                                            onClick={() => handleOpenEditSupplierModal(supplier)}
+                                                            className={`p-2 rounded-lg text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/10 transition-all`}
                                                             title="Edit Supplier"
                                                         >
                                                             <Edit size={18} />
                                                         </button>
-                                                        <button 
-                                                            onClick={() => handleDeleteSupplier(supplier.id)} 
+                                                        <button
+                                                            onClick={() => handleDeleteSupplier(supplier.id)}
                                                             className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all"
                                                             title="Delete Supplier"
                                                         >
@@ -711,31 +792,31 @@ const InventoryPage = () => {
                                 </table>
                             </div>
                         </div>
-                    </>
+                    </div>
                 )}
 
                 {/* --- MODALS --- */}
-                <AddProductModal 
-                    isOpen={isProductModalOpen} 
-                    onClose={handleCloseProductModal} 
-                    onSave={handleSaveProduct} 
-                    categories={categories} 
-                    suppliers={suppliers} 
-                    productToEdit={productToEdit} 
+                <AddProductModal
+                    isOpen={isProductModalOpen}
+                    onClose={handleCloseProductModal}
+                    onSave={handleSaveProduct}
+                    categories={categories}
+                    suppliers={suppliers}
+                    productToEdit={productToEdit}
                 />
-                <CategoryModal 
-                    isOpen={isCategoryModalOpen} 
-                    onClose={handleCloseCategoryModal} 
-                    onSave={handleSaveCategory} 
-                    categoryToEdit={categoryToEdit} 
+                <CategoryModal
+                    isOpen={isCategoryModalOpen}
+                    onClose={handleCloseCategoryModal}
+                    onSave={handleSaveCategory}
+                    categoryToEdit={categoryToEdit}
                 />
-                <SupplierModal 
-                    isOpen={isSupplierModalOpen} 
-                    onClose={handleCloseSupplierModal} 
-                    onSave={handleSaveSupplier} 
-                    supplierToEdit={supplierToEdit} 
+                <SupplierModal
+                    isOpen={isSupplierModalOpen}
+                    onClose={handleCloseSupplierModal}
+                    onSave={handleSaveSupplier}
+                    supplierToEdit={supplierToEdit}
                 />
-                
+
                 {/* History Modal Rendering */}
                 {historyModal.isOpen && (
                     <ProductHistoryModal

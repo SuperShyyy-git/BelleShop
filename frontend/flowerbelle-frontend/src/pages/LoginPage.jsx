@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Flower, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 
-// --- THEME CONSTANTS ---
+// --- THEME CONSTANTS (Based on Belle Studio Logo Colors) ---
 const THEME = {
-    primary: "#FF69B4",
-    gradientBg: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9]",
-    gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
-    pageBg: "bg-gradient-to-br from-white via-[#FFE4E1]/20 to-[#FF69B4]/10 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#2C1A21]",
-    cardBase: "bg-white/80 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 shadow-2xl",
-    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
-    buttonPrimary: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200"
+  // Logo colors: Sage Green (#8FBC8F), Blush Pink (#F5E6E0), Cream (#FFF8F0)
+  primary: "#8FBC8F",
+  gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+  gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
+  pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
+  cardBase: "bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 shadow-2xl",
+  inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+  buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200"
 };
 
 const LoginPage = () => {
@@ -27,33 +28,37 @@ const LoginPage = () => {
     setLoading(true);
 
     const result = await login(username, password);
-    
+
     if (result.success) {
       navigate('/dashboard');
     } else {
-      console.error('Login failed:', result.error); 
+      console.error('Login failed:', result.error);
     }
-    
+
     setLoading(false);
   };
 
   return (
     <div className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${THEME.pageBg} transition-colors duration-300`}>
-      
-      {/* Decorative background blobs (using theme colors) */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-[#FF69B4]/20 dark:bg-[#FF69B4]/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-30 animate-blob"></div>
-      <div className="absolute bottom-0 right-0 w-72 h-72 bg-[#FF77A9]/20 dark:bg-[#FF77A9]/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-30 animate-blob animation-delay-2000"></div>
-      <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-purple-200/30 dark:bg-purple-900/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-30 animate-blob animation-delay-4000"></div>
-      
+
+      {/* Decorative background blobs (matching logo colors) */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-[#8FBC8F]/30 dark:bg-[#8FBC8F]/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-30 animate-blob"></div>
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-[#F5E6E0]/50 dark:bg-[#A8D4A8]/10 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-30 animate-blob animation-delay-2000"></div>
+      <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-[#D4C4B0]/40 dark:bg-[#6B8E6B]/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl opacity-70 dark:opacity-30 animate-blob animation-delay-4000"></div>
+
       <div className="max-w-md w-full relative z-10">
-        
+
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className={`inline-flex items-center justify-center w-24 h-24 ${THEME.gradientBg} rounded-3xl mb-4 shadow-2xl shadow-[#FF69B4]/30 transform hover:scale-105 transition-transform duration-300`}>
-            <Flower className="w-14 h-14 text-white" strokeWidth={1.5} />
+          <div className="inline-block mb-4">
+            <img
+              src="/logo.jpg"
+              alt="Belle Studio Flower Shop"
+              className="w-40 h-40 object-contain mx-auto rounded-2xl shadow-2xl shadow-[#8FBC8F]/30 transform hover:scale-105 transition-transform duration-300"
+            />
           </div>
-          <h1 className={`text-4xl font-extrabold mb-2 ${THEME.gradientText}`}>
-            Flowerbelle POS
+          <h1 className={`text-3xl font-extrabold mb-2 ${THEME.gradientText}`}>
+            Belle Studio POS
           </h1>
           <p className="text-lg text-gray-500 dark:text-gray-400">
             Welcome back! Please login to your account.
@@ -63,7 +68,7 @@ const LoginPage = () => {
         {/* Login Card */}
         <div className={`rounded-3xl p-8 ${THEME.cardBase}`}>
           <form onSubmit={handleSubmit} className="space-y-6">
-            
+
             {/* Username Field */}
             <div className="space-y-2">
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-200">
@@ -71,13 +76,13 @@ const LoginPage = () => {
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400 group-focus-within:text-[#FF69B4] transition-colors duration-200" />
+                  <User className="h-5 w-5 text-gray-400 group-focus-within:text-[#8FBC8F] transition-colors duration-200" />
                 </div>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className={`w-full pl-12 pr-4 py-3.5 rounded-xl outline-none transition-all duration-200 focus:ring-4 focus:ring-[#FF69B4]/10 ${THEME.inputBase}`}
+                  className={`w-full pl-12 pr-4 py-3.5 rounded-xl outline-none transition-all duration-200 focus:ring-4 focus:ring-[#8FBC8F]/10 ${THEME.inputBase}`}
                   placeholder="Enter your username"
                   required
                   autoFocus
@@ -92,20 +97,20 @@ const LoginPage = () => {
               </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#FF69B4] transition-colors duration-200" />
+                  <Lock className="h-5 w-5 text-gray-400 group-focus-within:text-[#8FBC8F] transition-colors duration-200" />
                 </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`w-full pl-12 pr-12 py-3.5 rounded-xl outline-none transition-all duration-200 focus:ring-4 focus:ring-[#FF69B4]/10 ${THEME.inputBase}`}
+                  className={`w-full pl-12 pr-12 py-3.5 rounded-xl outline-none transition-all duration-200 focus:ring-4 focus:ring-[#8FBC8F]/10 ${THEME.inputBase}`}
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#FF69B4] transition-colors duration-200"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-[#8FBC8F] transition-colors duration-200"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -135,11 +140,11 @@ const LoginPage = () => {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-[#FF69B4] dark:text-[#FF77A9] font-medium opacity-80">
-          <p>© 2025 Flowerbelle Flower Shop. All rights reserved.</p>
+        <div className="text-center mt-8 text-sm text-[#6B8E6B] dark:text-[#8FBC8F] font-medium opacity-80">
+          <p>© 2023 Belle Studio Flower Shop. All rights reserved.</p>
         </div>
       </div>
-      
+
       {/* Animation Styles */}
       <style>{`
         @keyframes blob {

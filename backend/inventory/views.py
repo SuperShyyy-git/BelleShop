@@ -8,15 +8,15 @@ from accounts.permissions import IsOwner, IsOwnerOrReadOnly
 from accounts.utils import create_audit_log
 from django.db import IntegrityError 
 from rest_framework import serializers 
-from rest_framework.pagination import PageNumberPagination # ADDED
-from django.shortcuts import get_object_or_404 # ADDED
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
 from .models import Category, Supplier, Product, InventoryMovement, LowStockAlert
 from .serializers import (
     CategorySerializer, SupplierSerializer,
     ProductListSerializer, ProductDetailSerializer, ProductCreateUpdateSerializer,
     InventoryMovementSerializer, InventoryMovementCreateSerializer,
     StockAdjustmentSerializer, LowStockAlertSerializer, InventoryReportSerializer,
-    ProductHistorySerializer # ADDED
+    ProductHistorySerializer
 )
 
 
@@ -225,6 +225,18 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
             old_data = ProductDetailSerializer(self.get_object()).data
             product = serializer.save()
             
+            # Auto-resolve low stock alerts if stock is now above reorder level
+            if product.current_stock > product.reorder_level:
+                pending_alerts = LowStockAlert.objects.filter(
+                    product=product,
+                    status='PENDING'
+                )
+                if pending_alerts.exists():
+                    pending_alerts.update(
+                        status='RESOLVED',
+                        resolved_at=timezone.now()
+                    )
+            
             try:
                 create_audit_log(
                     user=self.request.user,
@@ -263,16 +275,16 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
 
 
-# ========== HISTORY VIEWS (NEW) ==========
+# ========== HISTORY VIEWS ==========
 
-class StandardResultsPagination(PageNumberPagination): # ADDED
+class StandardResultsPagination(PageNumberPagination):
     """Custom pagination for history list"""
     page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 100
 
 
-class ProductHistoryView(generics.ListAPIView): # ADDED
+class ProductHistoryView(generics.ListAPIView):
     """
     Retrieve historical changes for a specific Product.
     Route: /api/inventory/products/{pk}/history/
@@ -283,15 +295,10 @@ class ProductHistoryView(generics.ListAPIView): # ADDED
     
     def get_queryset(self):
         product_pk = self.kwargs['pk']
-        
         # Ensure the product exists
         product = get_object_or_404(Product, pk=product_pk)
-        
         # Use .history.all() to retrieve all historical records
-        # Order by history_date descending to see the latest changes first
-        queryset = product.history.all().select_related('history_user', 'created_by')
-        
-        return queryset
+        return product.history.all().select_related('history_user', 'created_by')
 
 
 # ========== INVENTORY MOVEMENT VIEWS (UNCHANGED) ==========
@@ -402,7 +409,7 @@ class StockAdjustmentView(APIView):
         })
 
 
-# ========== LOW STOCK ALERT VIEWS (UNCHANGED) ==========
+# ========== LOW STOCK ALERT & NOTIFICATION VIEWS ==========
 
 class LowStockAlertListView(generics.ListAPIView):
     """List all low stock alerts"""
@@ -420,6 +427,20 @@ class LowStockAlertListView(generics.ListAPIView):
             queryset = queryset.filter(status=status_filter)
         
         return queryset
+
+# 👇 NEW VIEW FOR DROPDOWN ALERTS 👇
+class RecentNotificationsView(generics.ListAPIView):
+    """
+    Get recent pending alerts for the notification dropdown.
+    Returns the 5 most recent pending alerts without pagination.
+    """
+    serializer_class = LowStockAlertSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None # Disable pagination for the dropdown
+
+    def get_queryset(self):
+        # Fetch only PENDING alerts, order by newest, limit to 5
+        return LowStockAlert.objects.filter(status='PENDING').select_related('product').order_by('-created_at')[:5]
 
 
 class LowStockAlertDetailView(generics.RetrieveAPIView):

@@ -4,19 +4,19 @@ import { X, Image as ImageIcon, Trash2, Save, DollarSign, Package, AlertCircle }
 // --- THEME CONSTANTS ---
 const THEME = {
   // Text Colors
-  primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
+  primaryText: "text-[#8FBC8F] dark:text-[#A8D4A8]",
   headingText: "text-gray-900 dark:text-white",
   subText: "text-gray-500 dark:text-gray-400",
   
   // Gradients
-  gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
+  gradientText: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] bg-clip-text text-transparent",
   
   // Components
   modalBg: "bg-white dark:bg-[#1e1e1e]",
-  inputBase: "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#FF69B4]/30 bg-white dark:bg-[#1A1A1D] text-gray-900 dark:text-white font-medium focus:border-[#FF69B4] dark:focus:border-[#FF77A9] outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600",
+  inputBase: "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#8FBC8F]/30 bg-white dark:bg-[#1A1A1D] text-gray-900 dark:text-white font-medium focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600",
   
   // Buttons
-  buttonPrimary: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200",
+  buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
   buttonSecondary: "border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
 };
 
@@ -129,15 +129,15 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
 
   return (
     <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className={`${THEME.modalBg} rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-[#FF69B4]/20 flex flex-col`}>
+      <div className={`${THEME.modalBg} rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-[#8FBC8F]/20 flex flex-col`}>
         
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#FF69B4]/10 bg-gray-50/50 dark:bg-[#1e1e1e]">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#8FBC8F]/10 bg-gray-50/50 dark:bg-[#1e1e1e]">
           <div>
             <h3 className={`text-2xl font-extrabold ${THEME.headingText}`}>{productToEdit ? 'Edit Product' : 'Add New Product'}</h3>
             <p className={`text-sm font-medium ${THEME.primaryText}`}>Inventory Management</p>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-[#FF69B4] hover:bg-[#FF69B4]/10 rounded-full transition-all" disabled={isSubmitting}>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-[#8FBC8F] hover:bg-[#8FBC8F]/10 rounded-full transition-all" disabled={isSubmitting}>
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -157,7 +157,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
               <label className={labelClass}>Product Image</label>
               <div className="relative group">
                 {imagePreview ? (
-                  <div className="relative rounded-2xl overflow-hidden border-2 border-[#FF69B4] shadow-md aspect-square group">
+                  <div className="relative rounded-2xl overflow-hidden border-2 border-[#8FBC8F] shadow-md aspect-square group">
                     <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <button type="button" onClick={handleRemoveImage} className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-all transform scale-90 hover:scale-100">
@@ -166,8 +166,8 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
                     </div>
                   </div>
                 ) : (
-                  <label className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl cursor-pointer bg-gray-50 dark:bg-[#1A1A1D] hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-[#FF69B4] dark:hover:border-[#FF69B4] transition-all group">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-gray-400 group-hover:text-[#FF69B4] transition-colors">
+                  <label className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl cursor-pointer bg-gray-50 dark:bg-[#1A1A1D] hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-[#8FBC8F] dark:hover:border-[#8FBC8F] transition-all group">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-gray-400 group-hover:text-[#8FBC8F] transition-colors">
                       <ImageIcon className="w-10 h-10 mb-3" />
                       <p className="text-xs font-bold uppercase tracking-wider">Upload Image</p>
                     </div>
@@ -181,7 +181,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
             {/* Main Fields */}
             <div className="flex-1 space-y-5">
               <div>
-                <label className={labelClass}>Product Name <span className="text-[#FF69B4]">*</span></label>
+                <label className={labelClass}>Product Name <span className="text-[#8FBC8F]">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange} className={THEME.inputBase} placeholder="e.g. Red Roses Bouquet" disabled={isSubmitting} />
                 {errors.name && <p className={errorClass}>{errors.name}</p>}
               </div>
@@ -193,7 +193,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>Category <span className="text-[#FF69B4]">*</span></label>
+                  <label className={labelClass}>Category <span className="text-[#8FBC8F]">*</span></label>
                   <select name="category" value={formData.category} onChange={handleChange} className={`${THEME.inputBase} appearance-none cursor-pointer`} disabled={isSubmitting}>
                     <option value="">Select...</option>
                     {categories && categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
@@ -201,7 +201,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
                   {errors.category && <p className={errorClass}>{errors.category}</p>}
                 </div>
                 <div>
-                  <label className={labelClass}>Supplier <span className="text-[#FF69B4]">*</span></label>
+                  <label className={labelClass}>Supplier <span className="text-[#8FBC8F]">*</span></label>
                   <select name="supplier" value={formData.supplier} onChange={handleChange} className={`${THEME.inputBase} appearance-none cursor-pointer`} disabled={isSubmitting}>
                     <option value="">Select...</option>
                     {suppliers && suppliers.map((sup) => <option key={sup.id} value={sup.id}>{sup.name}</option>)}
@@ -216,7 +216,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
 
           {/* Bottom Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 dark:bg-[#1A1A1D] p-5 rounded-2xl border border-gray-200 dark:border-[#FF69B4]/10">
+            <div className="bg-gray-50 dark:bg-[#1A1A1D] p-5 rounded-2xl border border-gray-200 dark:border-[#8FBC8F]/10">
               <h4 className={`text-sm font-bold ${THEME.primaryText} mb-4 flex items-center gap-2 uppercase tracking-wider`}><DollarSign size={16} /> Pricing</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -232,7 +232,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
               </div>
             </div>
 
-            <div className="bg-gray-50 dark:bg-[#1A1A1D] p-5 rounded-2xl border border-gray-200 dark:border-[#FF69B4]/10">
+            <div className="bg-gray-50 dark:bg-[#1A1A1D] p-5 rounded-2xl border border-gray-200 dark:border-[#8FBC8F]/10">
                <h4 className={`text-sm font-bold ${THEME.primaryText} mb-4 flex items-center gap-2 uppercase tracking-wider`}><Package size={16} /> Inventory</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -250,7 +250,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-[#FF69B4]/10 bg-gray-50/50 dark:bg-[#1e1e1e] flex gap-4">
+        <div className="p-6 border-t border-gray-200 dark:border-[#8FBC8F]/10 bg-gray-50/50 dark:bg-[#1e1e1e] flex gap-4">
           <button type="button" onClick={onClose} className={`flex-1 py-3.5 font-bold rounded-xl shadow-sm ${THEME.buttonSecondary}`} disabled={isSubmitting}>Cancel</button>
           <button type="button" onClick={handleSubmit} className={`flex-1 py-3.5 font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${THEME.buttonPrimary}`} disabled={isSubmitting}>
             <Save size={18} /> {isSubmitting ? 'Saving...' : (productToEdit ? 'Update Product' : 'Save Product')}

@@ -2,18 +2,17 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 from django.db.models import F
-from simple_history.models import HistoricalRecords # ADDED
+from simple_history.models import HistoricalRecords
 
 class Category(models.Model):
     """Product categories (Roses, Tulips, Arrangements, etc.)"""
-    
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    history = HistoricalRecords() # ADDED
+    history = HistoricalRecords()
     
     class Meta:
         db_table = 'categories'
@@ -32,7 +31,6 @@ class Category(models.Model):
 
 class Supplier(models.Model):
     """Suppliers for products"""
-    
     name = models.CharField(max_length=200)
     contact_person = models.CharField(max_length=100, blank=True)
     phone = models.CharField(max_length=20)
@@ -42,7 +40,7 @@ class Supplier(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    history = HistoricalRecords() # ADDED
+    history = HistoricalRecords()
     
     class Meta:
         db_table = 'suppliers'
@@ -56,7 +54,6 @@ class Supplier(models.Model):
 
 class Product(models.Model):
     """Products (flowers, arrangements, accessories)"""
-    
     sku = models.CharField(max_length=50, unique=True, verbose_name='SKU')
     name = models.CharField(max_length=200)
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
@@ -92,7 +89,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, related_name='created_products') 
     
-    history = HistoricalRecords() # ADDED
+    history = HistoricalRecords()
     
     class Meta:
         db_table = 'products'
@@ -180,32 +177,44 @@ class InventoryMovement(models.Model):
     
     def save(self, *args, **kwargs):
         """
-        ⚠️ NOTE: For SALE movements, stock updates and alert creation 
-        are now handled in pos/serializers.py for better transaction control.
-        
-        This save() method now only handles manual inventory movements 
-        (STOCK_IN, STOCK_OUT, ADJUSTMENT, DAMAGE).
+        Handles stock updates and alert management (creation AND resolution).
         """
         
         if not self.pk:  # Only on creation
             
-            # Only process non-SALE movements here
-            # SALE movements are created with pre-calculated stock_before/stock_after
+            # Only process non-SALE movements here (Sales handled in serializers)
             if self.movement_type != 'SALE' and not (self.stock_before is not None and self.stock_after is not None):
                 self.stock_before = self.product.current_stock
                 
-                if self.movement_type in ['STOCK_IN']:
+                # 1. Update the Stock
+                if self.movement_type in ['STOCK_IN', 'RETURN']:
                     Product.objects.filter(pk=self.product.pk).update(current_stock=F('current_stock') + self.quantity)
                 elif self.movement_type in ['STOCK_OUT', 'DAMAGE']:
                     Product.objects.filter(pk=self.product.pk).update(current_stock=F('current_stock') - self.quantity)
                 elif self.movement_type == 'ADJUSTMENT':
                     Product.objects.filter(pk=self.product.pk).update(current_stock=self.quantity)
                 
+                # 2. Get the new fresh stock level
                 self.product.refresh_from_db()
                 self.stock_after = self.product.current_stock
                 
-                # Create low stock alert for manual movements
-                if self.product.is_low_stock and self.movement_type in ['STOCK_OUT', 'DAMAGE', 'ADJUSTMENT']:
+                # 3. ALERT LOGIC
+                
+                # Case A: Stock is now HEALTHY (High enough) -> Resolve existing alerts
+                if not self.product.is_low_stock: 
+                    pending_alerts = LowStockAlert.objects.filter(
+                        product=self.product,
+                        status='PENDING'
+                    )
+                    if pending_alerts.exists():
+                        # Auto-resolve them
+                        pending_alerts.update(
+                            status='RESOLVED',
+                            resolved_at=timezone.now()
+                        )
+
+                # Case B: Stock is LOW -> Create alert if one doesn't exist
+                elif self.product.is_low_stock:
                     existing_alert = LowStockAlert.objects.filter(
                         product=self.product,
                         status='PENDING'
@@ -240,7 +249,7 @@ class LowStockAlert(models.Model):
     acknowledged_by = models.ForeignKey('accounts.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='acknowledged_alerts')
     resolved_at = models.DateTimeField(null=True, blank=True)
     
-    history = HistoricalRecords() # ADDED
+    history = HistoricalRecords()
     
     class Meta:
         db_table = 'low_stock_alerts'

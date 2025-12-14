@@ -6,11 +6,11 @@ import { toast } from 'react-hot-toast';
 
 // --- THEME CONSTANTS (Copied from InventoryPage for standalone use) ---
 const THEME = {
-    primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
+    primaryText: "text-[#8FBC8F] dark:text-[#A8D4A8]",
     headingText: "text-gray-800 dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
-    pageBg: "bg-gradient-to-br from-white via-[#E5E5E5]/20 to-[#FF69B4]/5 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1A1A1D]",
-    cardBase: "bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80 border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 shadow-xl shadow-[#FF69B4]/5 dark:shadow-black/20 backdrop-blur-sm",
+    pageBg: "bg-gradient-to-br from-white via-[#E5E5E5]/20 to-[#8FBC8F]/5 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1A1A1D]",
+    cardBase: "bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80 border-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20 shadow-xl shadow-[#8FBC8F]/5 dark:shadow-black/20 backdrop-blur-sm",
     tableHeader: "bg-gradient-to-br from-[#E5E5E5]/50 to-[#E5E5E5]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 text-gray-500 dark:text-gray-400",
 };
 
@@ -123,14 +123,14 @@ const ProductHistoryModal = ({ productId, productName, onClose }) => {
                                     <button
                                         onClick={() => handlePageChange(pagination.currentPage - 1)}
                                         disabled={pagination.currentPage === 1 || isFetching}
-                                        className="px-3 py-1 text-sm font-medium text-white bg-[#FF69B4] rounded-lg hover:bg-[#FF77A9] disabled:opacity-50 transition-all"
+                                        className="px-3 py-1 text-sm font-medium text-white bg-[#8FBC8F] rounded-lg hover:bg-[#A8D4A8] disabled:opacity-50 transition-all"
                                     >
                                         Previous
                                     </button>
                                     <button
                                         onClick={() => handlePageChange(pagination.currentPage + 1)}
                                         disabled={pagination.currentPage === pagination.totalPages || isFetching}
-                                        className="px-3 py-1 text-sm font-medium text-white bg-[#FF69B4] rounded-lg hover:bg-[#FF77A9] disabled:opacity-50 transition-all"
+                                        className="px-3 py-1 text-sm font-medium text-white bg-[#8FBC8F] rounded-lg hover:bg-[#A8D4A8] disabled:opacity-50 transition-all"
                                     >
                                         Next
                                     </button>

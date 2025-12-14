@@ -61,8 +61,6 @@ const inventoryService = {
 
   // Update product (Uses FormData for file uploads)
   updateProduct: async (id, productData) => {
-    // Note: Django REST Framework's PATCH should use FormData for partial updates,
-    // but put is used here as per the original code structure.
     const dataToSend = productData instanceof FormData ? productData : toFormData(productData);
 
     // Using PATCH for partial updates, PUT for full replacement (using PUT for compatibility)
@@ -74,6 +72,11 @@ const inventoryService = {
   // Delete product (Triggers soft-delete/deactivation)
   deleteProduct: async (id) => {
     return await api.delete(`/inventory/products/${id}/`);
+  },
+
+  // Restore product (Sets is_active = True)
+  restoreProduct: async (id) => {
+    return await api.patch(`/inventory/products/${id}/`, { is_active: true });
   },
 
   // 🔄 AUDIT TRAIL FUNCTION (NEW) 🔄
@@ -103,7 +106,6 @@ const inventoryService = {
     return await api.get('/inventory/categories/');
   },
   
-  // ADDED: Get Category Details (Assumed existence for edit modal)
   getCategoryDetails: async (id) => { 
     return await api.get(`/inventory/categories/${id}/`);
   },
@@ -112,7 +114,6 @@ const inventoryService = {
     return await api.post('/inventory/categories/', categoryData);
   },
 
-  // Corrected to use PATCH for updates (more common than PUT for DRF)
   updateCategory: async (id, categoryData) => { 
     return await api.patch(`/inventory/categories/${id}/`, categoryData);
   },
@@ -127,17 +128,14 @@ const inventoryService = {
     return await api.get('/inventory/suppliers/');
   },
   
-  // ADDED: Get Supplier Details (Assumed existence for edit modal)
   getSupplierDetails: async (id) => { 
     return await api.get(`/inventory/suppliers/${id}/`);
   },
-
 
   createSupplier: async (supplierData) => {
     return await api.post('/inventory/suppliers/', supplierData);
   },
 
-  // Corrected to use PATCH for updates (more common than PUT for DRF)
   updateSupplier: async (id, supplierData) => { 
     return await api.patch(`/inventory/suppliers/${id}/`, supplierData);
   },
@@ -152,17 +150,14 @@ const inventoryService = {
     return await api.get('/inventory/movements/', { params });
   },
   
-  // ADDED: Get Movement Details (Assumed existence for detail view)
   getMovementDetails: async (id) => { 
     return await api.get(`/inventory/movements/${id}/`);
   },
-
 
   createInventoryMovement: async (movementData) => {
     return await api.post('/inventory/movements/', movementData);
   },
 
-  // ADDED: Stock Adjustment (as per initial file list)
   adjustStock: async (adjustmentData) => {
     return await api.post('/inventory/stock-adjustment/', adjustmentData);
   },
@@ -173,7 +168,6 @@ const inventoryService = {
     return await api.get('/inventory/alerts/', { params });
   },
   
-  // ADDED: Get Alert Details (Assumed existence for detail view)
   getAlertDetails: async (id) => {
     return await api.get(`/inventory/alerts/${id}/`);
   },
@@ -182,11 +176,9 @@ const inventoryService = {
     return await api.post(`/inventory/alerts/${id}/acknowledge/`);
   },
 
-  // ADDED: Resolve Alert (as per views.py and urls.py)
   resolveAlert: async (id) => {
     return await api.post(`/inventory/alerts/${id}/resolve/`);
   },
-
 
   // ========== REPORTS ==========
   
@@ -194,7 +186,6 @@ const inventoryService = {
     return await api.get('/inventory/reports/inventory/');
   },
 
-  // ADDED: Category Report (as per urls.py)
   getCategoryReport: async () => {
     return await api.get('/inventory/reports/categories/');
   },

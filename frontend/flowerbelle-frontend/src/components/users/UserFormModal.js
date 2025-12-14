@@ -165,29 +165,29 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
     };
 
     // --- UPDATED STYLES WITH DASHBOARD COLORS ---
-    const inputClass = `w-full pl-4 pr-4 py-3 rounded-xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] focus:ring-4 focus:ring-[#FF69B4]/10 dark:focus:ring-[#FF77A9]/10 outline-none transition-all bg-white dark:bg-[#1A1A1D] text-gray-700 dark:text-gray-200 font-medium disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:border-gray-200 dark:disabled:border-gray-700`;
-    const labelClass = `flex items-center gap-1.5 text-sm font-bold text-[#FF69B4] dark:text-[#FF77A9] mb-1.5 uppercase tracking-wide`;
+    const inputClass = `w-full pl-4 pr-4 py-3 rounded-xl border-2 border-[#E5E5E5] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] focus:ring-4 focus:ring-[#8FBC8F]/10 dark:focus:ring-[#A8D4A8]/10 outline-none transition-all bg-white dark:bg-[#1A1A1D] text-gray-700 dark:text-gray-200 font-medium disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:border-gray-200 dark:disabled:border-gray-700`;
+    const labelClass = `flex items-center gap-1.5 text-sm font-bold text-[#8FBC8F] dark:text-[#A8D4A8] mb-1.5 uppercase tracking-wide`;
 
     return (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
             
             {/* Modal Content */}
-            <div className="bg-white dark:bg-[#1e1e1e] rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 flex flex-col transition-colors" onClick={e => e.stopPropagation()}>
+            <div className="bg-white dark:bg-[#1e1e1e] rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20 flex flex-col transition-colors" onClick={e => e.stopPropagation()}>
                 
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80">
+                <div className="flex items-center justify-between p-6 border-b-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20 bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D] dark:to-[#1A1A1D]/80">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-[#FF69B4]/10 to-[#FF77A9]/20 dark:from-[#FF69B4]/20 dark:to-[#FF77A9]/10 rounded-2xl">
-                            {isEditing ? <UserCog className="w-6 h-6 text-[#FF69B4] dark:text-[#FF77A9]" /> : <UserPlus className="w-6 h-6 text-[#FF69B4] dark:text-[#FF77A9]" />}
+                        <div className="p-2 bg-gradient-to-br from-[#8FBC8F]/10 to-[#A8D4A8]/20 dark:from-[#8FBC8F]/20 dark:to-[#A8D4A8]/10 rounded-2xl">
+                            {isEditing ? <UserCog className="w-6 h-6 text-[#8FBC8F] dark:text-[#A8D4A8]" /> : <UserPlus className="w-6 h-6 text-[#8FBC8F] dark:text-[#A8D4A8]" />}
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent">{title}</h3>
+                            <h3 className="text-xl font-bold bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] bg-clip-text text-transparent">{title}</h3>
                             <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider">User Details</p>
                         </div>
                     </div>
                     <button 
                         onClick={onClose} 
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#FF69B4] dark:hover:text-[#FF77A9] hover:bg-[#E5E5E5]/50 dark:hover:bg-gray-800 rounded-full transition-all"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-[#8FBC8F] dark:hover:text-[#A8D4A8] hover:bg-[#E5E5E5]/50 dark:hover:bg-gray-800 rounded-full transition-all"
                     >
                         <X size={24} />
                     </button>
@@ -309,8 +309,8 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
 
                     {/* SECTION 3: Security (Conditional) */}
                     {!isEditingSelf && (
-                        <div className="bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20">
-                            <h4 className="text-[#FF69B4] dark:text-[#FF77A9] font-bold text-sm mb-4 flex items-center gap-2 border-b-2 border-[#E5E5E5] dark:border-[#FF69B4]/20 pb-2">
+                        <div className="bg-gradient-to-br from-white to-[#E5E5E5]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 p-5 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20">
+                            <h4 className="text-[#8FBC8F] dark:text-[#A8D4A8] font-bold text-sm mb-4 flex items-center gap-2 border-b-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20 pb-2">
                                 <Lock size={14} /> Security Credentials
                             </h4>
                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
@@ -340,7 +340,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF69B4] dark:hover:text-[#FF77A9] transition-colors"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#8FBC8F] dark:hover:text-[#A8D4A8] transition-colors"
                                         >
                                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
@@ -348,7 +348,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
 
                                     {/* Requirements Checklist */}
                                     {formData.password && (
-                                        <div className="mt-4 p-3 bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-[#FF69B4]/20">
+                                        <div className="mt-4 p-3 bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-[#8FBC8F]/20">
                                             <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">Requirements:</p>
                                             <div className="space-y-1.5">
                                                 <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).minLength ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -394,7 +394,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                         <button
                                             type="button"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF69B4] dark:hover:text-[#FF77A9] transition-colors"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#8FBC8F] dark:hover:text-[#A8D4A8] transition-colors"
                                         >
                                             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
@@ -423,7 +423,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
 
                     {/* SECTION 4: Status (Edit Only) */}
                     {isEditing && !isEditingSelf && (
-                        <div className="flex items-center gap-3 bg-gradient-to-br from-[#E5E5E5]/50 to-[#E5E5E5]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 p-4 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#FF69B4]/20">
+                        <div className="flex items-center gap-3 bg-gradient-to-br from-[#E5E5E5]/50 to-[#E5E5E5]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 p-4 rounded-2xl border-2 border-[#E5E5E5] dark:border-[#8FBC8F]/20">
                             <div className="relative inline-block w-12 h-6 transition duration-200 ease-in-out rounded-full">
                                 <input
                                     id="is_active"
@@ -433,7 +433,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                                     onChange={handleChange}
                                     className="peer absolute w-full h-full opacity-0 cursor-pointer z-10"
                                 />
-                                <div className="block w-full h-full bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-gradient-to-r peer-checked:from-[#FF69B4] peer-checked:to-[#FF77A9] transition-colors"></div>
+                                <div className="block w-full h-full bg-gray-300 dark:bg-gray-600 rounded-full peer-checked:bg-gradient-to-r peer-checked:from-[#8FBC8F] peer-checked:to-[#A8D4A8] transition-colors"></div>
                                 <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-6 shadow-md"></div>
                             </div>
                             <label htmlFor="is_active" className="text-sm font-bold text-gray-700 dark:text-gray-200 cursor-pointer select-none">
@@ -447,7 +447,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                         <button 
                             type="button" 
                             onClick={onClose} 
-                            className="flex-1 py-3.5 border-2 border-[#FF69B4] dark:border-[#FF69B4]/50 text-[#FF69B4] dark:text-[#FF77A9] font-bold rounded-xl hover:bg-[#FF69B4]/5 dark:hover:bg-[#FF69B4]/10 transition-all shadow-sm hover:shadow-md"
+                            className="flex-1 py-3.5 border-2 border-[#8FBC8F] dark:border-[#8FBC8F]/50 text-[#8FBC8F] dark:text-[#A8D4A8] font-bold rounded-xl hover:bg-[#8FBC8F]/5 dark:hover:bg-[#8FBC8F]/10 transition-all shadow-sm hover:shadow-md"
                             disabled={loading}
                         >
                             Cancel
@@ -464,7 +464,7 @@ const UserFormModal = ({ isOpen, user, onClose, onSave, currentUserId }) => {
                         ) : (
                             <button 
                                 type="submit" 
-                                className="flex-1 py-3.5 bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white font-bold rounded-xl hover:shadow-xl hover:shadow-[#FF69B4]/30 transition-all shadow-lg flex items-center justify-center gap-2"
+                                className="flex-1 py-3.5 bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white font-bold rounded-xl hover:shadow-xl hover:shadow-[#8FBC8F]/30 transition-all shadow-lg flex items-center justify-center gap-2"
                                 disabled={loading}
                             >
                                 <Save size={20} />

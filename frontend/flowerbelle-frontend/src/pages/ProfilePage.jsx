@@ -4,28 +4,29 @@ import userService from '../services/userService';
 import authService from '../services/authService';
 import Loading from '../components/common/Loading';
 import { User, Mail, Phone, Lock, Save, Shield, CheckCircle, Eye, EyeOff, AlertCircle, LogOut, X, Check } from 'lucide-react';
-import toast from 'react-hot-toast'; 
+import toast from 'react-hot-toast';
 
-// --- THEME CONSTANTS ---
+// --- THEME CONSTANTS (Based on Belle Studio Logo Colors - Matching LoginPage) ---
 const THEME = {
+    // Logo colors: Sage Green (#8FBC8F), Blush Pink (#F5E6E0), Cream (#FFF8F0)
     // Text Colors
-    primaryText: "text-[#FF69B4] dark:text-[#FF77A9]",
-    headingText: "text-gray-900 dark:text-white",
+    primaryText: "text-[#8FBC8F] dark:text-[#8FBC8F]",
+    headingText: "text-[#2F4F4F] dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
-    
+
     // Gradients
-    gradientText: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] bg-clip-text text-transparent",
-    gradientBg: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9]",
-    
+    gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
+    gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+
     // Backgrounds
-    pageBg: "bg-gradient-to-br from-white via-[#FFE4E1]/20 to-[#FF69B4]/10 dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#2C1A21]",
-    
+    pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
+
     // Components
-    cardBase: "bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#FF69B4]/20 shadow-lg shadow-[#FF69B4]/5 dark:shadow-black/20",
-    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#E5E5E5] dark:border-[#FF69B4]/30 focus:border-[#FF69B4] dark:focus:border-[#FF77A9] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
-    
+    cardBase: "bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 shadow-xl",
+    inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+
     // Buttons
-    buttonPrimary: "bg-gradient-to-r from-[#FF69B4] to-[#FF77A9] text-white shadow-lg shadow-[#FF69B4]/30 hover:shadow-[#FF69B4]/50 hover:-translate-y-0.5 transition-all duration-200"
+    buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200"
 };
 
 const ProfilePage = () => {
@@ -65,9 +66,9 @@ const ProfilePage = () => {
     const fetchUserData = async () => {
         setLoading(true);
         try {
-            const response = await userService.getUserDetail('me'); 
+            const response = await userService.getUserDetail('me');
             const user = response.data;
-            
+
             setUserData(user);
             setFormData({
                 username: user.username || '',
@@ -98,9 +99,9 @@ const ProfilePage = () => {
     // --- 2b. Handle Phone Number Changes with Validation ---
     const handlePhoneChange = (e) => {
         let value = e.target.value;
-        
+
         const cleaned = value.replace(/\D/g, '');
-        
+
         if (cleaned.length > 0) {
             if (cleaned.startsWith('09')) {
                 value = cleaned.substring(0, 11);
@@ -114,9 +115,9 @@ const ProfilePage = () => {
         } else {
             value = '';
         }
-        
+
         setFormData(prev => ({ ...prev, phone_number: value }));
-        
+
         const regex = /^09\d{9}$/;
         if (value && !regex.test(value)) {
             setPhoneError('Format: 09XXXXXXXXX (11 digits, e.g., 09175550123)');
@@ -128,14 +129,14 @@ const ProfilePage = () => {
     // --- 3. Handle Form Submission ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         // Check password validation only on submit
         if (formData.password || formData.password_confirm) {
             if (!allRequirementsMet(formData.password)) {
                 toast.error("Password does not meet all requirements.");
                 return;
             }
-            
+
             if (formData.password !== formData.password_confirm) {
                 toast.error("Passwords do not match.");
                 return;
@@ -158,17 +159,17 @@ const ProfilePage = () => {
         console.log("Submitting Profile Update:", dataToSubmit);
 
         try {
-            await userService.updateUser('me', dataToSubmit); 
+            await userService.updateUser('me', dataToSubmit);
             toast.success("Profile updated successfully! 💾");
-            
+
             setFormData(prev => ({ ...prev, password: '', password_confirm: '' }));
-            await fetchUserData(); 
+            await fetchUserData();
 
         } catch (error) {
             console.error("Profile update failed:", error.response?.data || error);
-            const errMsg = error.response?.data?.email?.[0] || 
-                           error.response?.data?.password?.[0] || 
-                           "Failed to save profile. Check data.";
+            const errMsg = error.response?.data?.email?.[0] ||
+                error.response?.data?.password?.[0] ||
+                "Failed to save profile. Check data.";
             toast.error(errMsg);
         } finally {
             setIsSaving(false);
@@ -185,13 +186,13 @@ const ProfilePage = () => {
     if (loading || !userData) {
         return <Loading message="Loading profile..." />;
     }
-    
+
     const labelClass = `flex items-center gap-2 text-sm font-bold ${THEME.subText} mb-2 uppercase tracking-wide`;
-    
+
     return (
         <div className={`min-h-screen ${THEME.pageBg} p-4 sm:p-6 lg:p-8 transition-colors duration-200`}>
             <div className="max-w-5xl mx-auto space-y-6 pb-6">
-                
+
                 {/* Header Section */}
                 <div className={`rounded-3xl p-8 text-white shadow-xl relative overflow-hidden ${THEME.gradientBg}`}>
                     <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
@@ -202,7 +203,7 @@ const ProfilePage = () => {
                             <User className="w-12 h-12 text-white" />
                         </div>
                         <div className="flex-1">
-                            <h1 className="text-3xl font-extrabold mb-1 text-white tracking-tight">{userData.full_name}</h1>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-1 text-white tracking-tight">{userData.full_name}</h1>
                             <div className="flex items-center gap-4 text-white/90 font-medium">
                                 <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm">
                                     <Shield className="w-4 h-4" />
@@ -222,21 +223,21 @@ const ProfilePage = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
+
                     {/* Main Form Section */}
                     <div className={`lg:col-span-2 rounded-3xl ${THEME.cardBase}`}>
-                        <div className="p-6 border-b border-gray-200 dark:border-[#FF69B4]/10">
+                        <div className="p-6 border-b border-gray-200 dark:border-[#8FBC8F]/10">
                             <h2 className={`text-xl font-bold ${THEME.headingText}`}>Personal Information</h2>
                             <p className={`text-sm ${THEME.subText} mt-0.5`}>Update your account details below</p>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                            
+
                             {/* Username */}
                             <div>
                                 <label className={labelClass}>
                                     <User className="w-4 h-4" />
-                                    Username <span className="text-[#FF69B4]">*</span>
+                                    Username <span className="text-[#8FBC8F]">*</span>
                                 </label>
                                 <input
                                     id="username"
@@ -254,7 +255,7 @@ const ProfilePage = () => {
                             <div>
                                 <label className={labelClass}>
                                     <User className="w-4 h-4" />
-                                    Name <span className="text-[#FF69B4]">*</span>
+                                    Name <span className="text-[#8FBC8F]">*</span>
                                 </label>
                                 <input
                                     id="full_name"
@@ -272,7 +273,7 @@ const ProfilePage = () => {
                             <div>
                                 <label className={labelClass}>
                                     <Mail className="w-4 h-4" />
-                                    Email Address <span className="text-[#FF69B4]">*</span>
+                                    Email Address <span className="text-[#8FBC8F]">*</span>
                                 </label>
                                 <input
                                     id="email"
@@ -310,12 +311,12 @@ const ProfilePage = () => {
                             </div>
 
                             {/* Password Section */}
-                            <div className="bg-gray-50/50 dark:bg-[#1A1A1D]/50 p-6 rounded-2xl border border-gray-200 dark:border-[#FF69B4]/20 mt-6">
-                                <h3 className={`font-bold text-sm mb-4 flex items-center gap-2 border-b border-gray-200 dark:border-[#FF69B4]/10 pb-2 ${THEME.headingText}`}>
-                                    <Lock className="w-4 h-4 text-[#FF69B4]" /> Change Password
+                            <div className="bg-gray-50/50 dark:bg-[#1A1A1D]/50 p-6 rounded-2xl border border-gray-200 dark:border-[#8FBC8F]/20 mt-6">
+                                <h3 className={`font-bold text-sm mb-4 flex items-center gap-2 border-b border-gray-200 dark:border-[#8FBC8F]/10 pb-2 ${THEME.headingText}`}>
+                                    <Lock className="w-4 h-4 text-[#8FBC8F]" /> Change Password
                                 </h3>
                                 <p className={`text-xs ${THEME.subText} mb-4`}>Leave both fields blank to keep your current password.</p>
-                                
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* New Password */}
                                     <div>
@@ -329,17 +330,15 @@ const ProfilePage = () => {
                                                 type={showPassword ? "text" : "password"}
                                                 value={formData.password}
                                                 onChange={handleChange}
-                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${
-                                                    formData.password && !allRequirementsMet(formData.password) ? 'border-red-500 dark:border-red-500' : ''
-                                                } ${
-                                                    formData.password && allRequirementsMet(formData.password) ? 'border-green-500 dark:border-green-500' : ''
-                                                }`}
+                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${formData.password && !allRequirementsMet(formData.password) ? 'border-red-500 dark:border-red-500' : ''
+                                                    } ${formData.password && allRequirementsMet(formData.password) ? 'border-green-500 dark:border-green-500' : ''
+                                                    }`}
                                                 placeholder="Min. 8 characters"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF69B4] transition-colors"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#8FBC8F] transition-colors"
                                             >
                                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
@@ -347,7 +346,7 @@ const ProfilePage = () => {
 
                                         {/* Requirements Checklist */}
                                         {formData.password && (
-                                            <div className="mt-4 p-4 bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-[#FF69B4]/20">
+                                            <div className="mt-4 p-4 bg-white dark:bg-[#1A1A1D] rounded-xl border border-gray-200 dark:border-[#8FBC8F]/20">
                                                 <p className={`text-xs font-bold mb-3 ${THEME.subText}`}>Requirements:</p>
                                                 <div className="space-y-2">
                                                     <div className={`flex items-center gap-2 text-xs ${checkPasswordRequirements(formData.password).minLength ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -383,17 +382,15 @@ const ProfilePage = () => {
                                                 type={showConfirmPassword ? "text" : "password"}
                                                 value={formData.password_confirm}
                                                 onChange={handleChange}
-                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${
-                                                    formData.password_confirm && formData.password !== formData.password_confirm ? 'border-red-500 dark:border-red-500' : ''
-                                                } ${
-                                                    formData.password_confirm && formData.password === formData.password_confirm && formData.password ? 'border-green-500 dark:border-green-500' : ''
-                                                }`}
+                                                className={`w-full px-4 py-3 rounded-xl outline-none transition-all pr-10 ${THEME.inputBase} ${formData.password_confirm && formData.password !== formData.password_confirm ? 'border-red-500 dark:border-red-500' : ''
+                                                    } ${formData.password_confirm && formData.password === formData.password_confirm && formData.password ? 'border-green-500 dark:border-green-500' : ''
+                                                    }`}
                                                 placeholder="Re-enter password"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF69B4] transition-colors"
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#8FBC8F] transition-colors"
                                             >
                                                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
@@ -435,7 +432,7 @@ const ProfilePage = () => {
 
                     {/* Sidebar Info */}
                     <div className="space-y-6">
-                        
+
                         {/* Account Status */}
                         <div className={`rounded-3xl p-6 ${THEME.cardBase}`}>
                             <h3 className={`text-lg font-bold mb-4 ${THEME.headingText}`}>Account Status</h3>
@@ -465,7 +462,7 @@ const ProfilePage = () => {
                                 <div>
                                     <h4 className="text-sm font-bold text-sky-900 dark:text-sky-200 mb-1">Security Tip</h4>
                                     <p className="text-xs text-sky-700 dark:text-sky-300 leading-relaxed font-medium">
-                                         Your password is your personal key to access the system. Never share it with anyone. 
+                                        Your password is your personal key to access the system. Never share it with anyone.
                                     </p>
                                 </div>
                             </div>
@@ -474,7 +471,7 @@ const ProfilePage = () => {
                         {/* Logout Button */}
                         <button
                             onClick={() => setShowLogoutModal(true)}
-                            className="w-full px-6 py-4 bg-[#FF69B4]/10 dark:bg-[#FF69B4]/5 hover:bg-[#FF69B4]/20 dark:hover:bg-[#FF69B4]/10 text-[#FF69B4] dark:text-[#FF77A9] rounded-3xl font-bold flex items-center justify-center gap-2 border-2 border-[#FF69B4]/30 dark:border-[#FF69B4]/20 transition-all duration-200 hover:shadow-lg hover:shadow-[#FF69B4]/20"
+                            className="w-full px-6 py-4 bg-[#8FBC8F]/10 dark:bg-[#8FBC8F]/5 hover:bg-[#8FBC8F]/20 dark:hover:bg-[#8FBC8F]/10 text-[#8FBC8F] dark:text-[#A8D4A8] rounded-3xl font-bold flex items-center justify-center gap-2 border-2 border-[#8FBC8F]/30 dark:border-[#8FBC8F]/20 transition-all duration-200 hover:shadow-lg hover:shadow-[#8FBC8F]/20"
                         >
                             <LogOut className="w-5 h-5" />
                             Log Out
@@ -507,7 +504,7 @@ const ProfilePage = () => {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setShowLogoutModal(false)}
-                                    className="flex-1 px-6 py-3 border-2 border-[#FF69B4] dark:border-[#FF69B4]/50 text-[#FF69B4] dark:text-[#FF77A9] hover:bg-[#FF69B4]/5 dark:hover:bg-[#FF69B4]/10 rounded-xl font-bold transition-all duration-200"
+                                    className="flex-1 px-6 py-3 border-2 border-[#8FBC8F] dark:border-[#8FBC8F]/50 text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/5 dark:hover:bg-[#8FBC8F]/10 rounded-xl font-bold transition-all duration-200"
                                 >
                                     Cancel
                                 </button>

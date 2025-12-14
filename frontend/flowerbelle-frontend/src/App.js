@@ -15,14 +15,15 @@ import InventoryPage from './pages/InventoryPage';
 import ReportsPage from './pages/ReportsPage';
 import ForecastingPage from './pages/ForecastingPage';
 import UserManagementPage from './pages/UserManagementPage';
-import ProfilePage from './pages/ProfilePage.jsx'; 
+import ActivityLogPage from './pages/ActivityLogPage';
+import ProfilePage from './pages/ProfilePage.jsx';
 
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             refetchOnWindowFocus: false,
             retry: 1,
-            staleTime: 5 * 60 * 1000, 
+            staleTime: 5 * 60 * 1000,
         },
     },
 });
@@ -33,7 +34,7 @@ function App() {
             <BrowserRouter>
                 <AuthProvider>
                     <ThemeProvider>
-                        <Toaster 
+                        <Toaster
                             position="top-right"
                             toastOptions={{
                                 duration: 3000,
@@ -43,10 +44,10 @@ function App() {
                                 },
                             }}
                         />
-                        
+
                         <Routes>
                             <Route path="/login" element={<LoginPage />} />
-                            
+
                             <Route
                                 path="/dashboard"
                                 element={
@@ -57,7 +58,7 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            
+
                             <Route
                                 path="/pos"
                                 element={
@@ -68,7 +69,7 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            
+
                             <Route
                                 path="/inventory"
                                 element={
@@ -79,7 +80,7 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            
+
                             <Route
                                 path="/reports"
                                 element={
@@ -90,7 +91,7 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            
+
                             <Route
                                 path="/forecasting"
                                 element={
@@ -112,18 +113,29 @@ function App() {
                                     </ProtectedRoute>
                                 }
                             />
-                            
+
+                            <Route
+                                path="/activity-log"
+                                element={
+                                    <ProtectedRoute requireOwner={true}>
+                                        <Layout>
+                                            <ActivityLogPage />
+                                        </Layout>
+                                    </ProtectedRoute>
+                                }
+                            />
+
                             <Route
                                 path="/profile"
                                 element={
-                                    <ProtectedRoute> 
+                                    <ProtectedRoute>
                                         <Layout>
                                             <ProfilePage />
                                         </Layout>
                                     </ProtectedRoute>
                                 }
                             />
-                            
+
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="*" element={<Navigate to="/dashboard" replace />} />
                         </Routes>

@@ -1,4 +1,4 @@
-import os
+import csv
 import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'flowerbelle_backend.settings')
 
@@ -8,7 +8,7 @@ django.setup()
 from datetime import datetime, timedelta, date
 from decimal import Decimal
 import random
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from accounts.models import User, AuditLog
 from inventory.models import Category, Supplier, Product, InventoryMovement, LowStockAlert
@@ -86,6 +86,7 @@ categories_data = [
     {'name': 'Wedding Arrangements', 'description': 'Special arrangements for weddings'},
     {'name': 'Funeral Arrangements', 'description': 'Respectful funeral flower arrangements'},
     {'name': 'Vases & Accessories', 'description': 'Vases, ribbons, and decorative items'},
+    {'name': 'Fillers', 'description': 'Filler flowers like Baby’s Breath'},
 ]
 
 categories = {}
@@ -134,65 +135,29 @@ for sup_data in suppliers_data:
 print("Creating products...")
 # Create products
 products_data = [
-    # Roses
-    {'sku': 'RSE-001', 'name': 'Red Roses (Dozen)', 'category': 'Roses', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('1200.00'), 'cost_price': Decimal('800.00'), 'current_stock': 50, 'reorder_level': 15},
-    {'sku': 'RSE-002', 'name': 'White Roses (Dozen)', 'category': 'Roses', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('1100.00'), 'cost_price': Decimal('750.00'), 'current_stock': 35, 'reorder_level': 15},
-    {'sku': 'RSE-003', 'name': 'Pink Roses (Dozen)', 'category': 'Roses', 'supplier': 'Tagaytay Blooms',
-     'unit_price': Decimal('1000.00'), 'cost_price': Decimal('700.00'), 'current_stock': 40, 'reorder_level': 15},
-    {'sku': 'RSE-004', 'name': 'Yellow Roses (Dozen)', 'category': 'Roses', 'supplier': 'Tagaytay Blooms',
-     'unit_price': Decimal('1000.00'), 'cost_price': Decimal('700.00'), 'current_stock': 8, 'reorder_level': 15},
+    # ROSES
+    {'sku': 'RSE-001', 'name': 'Red Roses Bouquet', 'category': 'Roses', 'supplier': 'Manila Flower Market',
+     'unit_price': Decimal('899.00'), 'cost_price': Decimal('600.00'), 'current_stock': 100, 'reorder_level': 20},
     
-    # Tulips
-    {'sku': 'TLP-001', 'name': 'Red Tulips (10 stems)', 'category': 'Tulips', 'supplier': 'Imported Florals Inc',
-     'unit_price': Decimal('1500.00'), 'cost_price': Decimal('1000.00'), 'current_stock': 25, 'reorder_level': 10},
-    {'sku': 'TLP-002', 'name': 'Mixed Tulips (10 stems)', 'category': 'Tulips', 'supplier': 'Imported Florals Inc',
-     'unit_price': Decimal('1600.00'), 'cost_price': Decimal('1100.00'), 'current_stock': 20, 'reorder_level': 10},
-    
-    # Lilies
-    {'sku': 'LLY-001', 'name': 'Stargazer Lilies (5 stems)', 'category': 'Lilies', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('800.00'), 'cost_price': Decimal('550.00'), 'current_stock': 30, 'reorder_level': 12},
-    {'sku': 'LLY-002', 'name': 'Calla Lilies White (5 stems)', 'category': 'Lilies', 'supplier': 'Tagaytay Blooms',
-     'unit_price': Decimal('900.00'), 'cost_price': Decimal('600.00'), 'current_stock': 22, 'reorder_level': 12},
-    
-    # Orchids
-    {'sku': 'ORC-001', 'name': 'Purple Orchid Plant', 'category': 'Orchids', 'supplier': 'Tagaytay Blooms',
-     'unit_price': Decimal('2500.00'), 'cost_price': Decimal('1800.00'), 'current_stock': 15, 'reorder_level': 5},
-    {'sku': 'ORC-002', 'name': 'White Orchid Plant', 'category': 'Orchids', 'supplier': 'Tagaytay Blooms',
-     'unit_price': Decimal('2500.00'), 'cost_price': Decimal('1800.00'), 'current_stock': 12, 'reorder_level': 5},
-    
-    # Sunflowers
-    {'sku': 'SUN-001', 'name': 'Sunflowers (6 stems)', 'category': 'Sunflowers', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('600.00'), 'cost_price': Decimal('400.00'), 'current_stock': 45, 'reorder_level': 20},
-    
-    # Mixed Bouquets
-    {'sku': 'MXB-001', 'name': 'Spring Garden Bouquet', 'category': 'Mixed Bouquets', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('1800.00'), 'cost_price': Decimal('1200.00'), 'current_stock': 18, 'reorder_level': 8},
-    {'sku': 'MXB-002', 'name': 'Romantic Rose & Lily Bouquet', 'category': 'Mixed Bouquets', 'supplier': 'Tagaytay Blooms',
-     'unit_price': Decimal('2200.00'), 'cost_price': Decimal('1500.00'), 'current_stock': 15, 'reorder_level': 8},
-    {'sku': 'MXB-003', 'name': 'Birthday Celebration Bouquet', 'category': 'Mixed Bouquets', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('1500.00'), 'cost_price': Decimal('1000.00'), 'current_stock': 20, 'reorder_level': 10},
-    
-    # Wedding Arrangements
-    {'sku': 'WED-001', 'name': 'Bridal Bouquet - Classic White', 'category': 'Wedding Arrangements', 'supplier': 'Imported Florals Inc',
-     'unit_price': Decimal('5000.00'), 'cost_price': Decimal('3500.00'), 'current_stock': 5, 'reorder_level': 3},
-    {'sku': 'WED-002', 'name': 'Wedding Centerpiece', 'category': 'Wedding Arrangements', 'supplier': 'Imported Florals Inc',
-     'unit_price': Decimal('3500.00'), 'cost_price': Decimal('2500.00'), 'current_stock': 8, 'reorder_level': 4},
-    
-    # Funeral Arrangements
-    {'sku': 'FUN-001', 'name': 'Sympathy Wreath', 'category': 'Funeral Arrangements', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('3000.00'), 'cost_price': Decimal('2000.00'), 'current_stock': 10, 'reorder_level': 5},
-    {'sku': 'FUN-002', 'name': 'Standing Spray - White', 'category': 'Funeral Arrangements', 'supplier': 'Manila Flower Market',
-     'unit_price': Decimal('4000.00'), 'cost_price': Decimal('2800.00'), 'current_stock': 6, 'reorder_level': 3},
-    
-    # Accessories
-    {'sku': 'ACC-001', 'name': 'Glass Vase Medium', 'category': 'Vases & Accessories', 'supplier': 'Garden Supplies Co',
-     'unit_price': Decimal('350.00'), 'cost_price': Decimal('200.00'), 'current_stock': 50, 'reorder_level': 20},
-    {'sku': 'ACC-002', 'name': 'Decorative Ribbon Set', 'category': 'Vases & Accessories', 'supplier': 'Garden Supplies Co',
-     'unit_price': Decimal('150.00'), 'cost_price': Decimal('80.00'), 'current_stock': 100, 'reorder_level': 30},
-    {'sku': 'ACC-003', 'name': 'Flower Food Packets (10 pcs)', 'category': 'Vases & Accessories', 'supplier': 'Garden Supplies Co',
-     'unit_price': Decimal('200.00'), 'cost_price': Decimal('100.00'), 'current_stock': 75, 'reorder_level': 25},
+    # SUNFLOWERS
+    {'sku': 'SUN-001', 'name': 'Sunflowers', 'category': 'Sunflowers', 'supplier': 'Tagaytay Blooms',
+     'unit_price': Decimal('150.00'), 'cost_price': Decimal('80.00'), 'current_stock': 150, 'reorder_level': 30},
+     
+    # TULIPS
+    {'sku': 'TLP-001', 'name': 'Tulip Bundle', 'category': 'Tulips', 'supplier': 'Imported Florals Inc',
+     'unit_price': Decimal('399.00'), 'cost_price': Decimal('250.00'), 'current_stock': 80, 'reorder_level': 15},
+     
+    # MIXED
+    {'sku': 'MXB-001', 'name': 'Mixed Bouquet', 'category': 'Mixed Bouquets', 'supplier': 'Manila Flower Market',
+     'unit_price': Decimal('699.00'), 'cost_price': Decimal('450.00'), 'current_stock': 60, 'reorder_level': 10},
+     
+    # ORCHIDS
+    {'sku': 'ORC-001', 'name': 'Orchid Stem', 'category': 'Orchids', 'supplier': 'Tagaytay Blooms',
+     'unit_price': Decimal('250.00'), 'cost_price': Decimal('150.00'), 'current_stock': 40, 'reorder_level': 8},
+     
+    # FILLERS
+    {'sku': 'FIL-001', 'name': 'Baby’s Breath', 'category': 'Fillers', 'supplier': 'Manila Flower Market',
+     'unit_price': Decimal('120.00'), 'cost_price': Decimal('50.00'), 'current_stock': 200, 'reorder_level': 50},
 ]
 
 products = {}
@@ -220,67 +185,90 @@ for product in Product.objects.all():
 
 print("Creating sales transactions...")
 # Create sales transactions for the past 30 days
+print("Importing sales from CSV...")
+csv_file_path = os.path.join(os.path.dirname(__file__), 'seed_data_90_days.csv')
+
 transaction_count = 0
-for days_ago in range(30, 0, -1):
-    trans_date = timezone.now() - timedelta(days=days_ago)
-    num_transactions = random.randint(3, 12)  # 3-12 transactions per day
-    
-    for _ in range(num_transactions):
-        # Random staff member
-        staff = random.choice([owner, staff1, staff2])
+transaction_dates = set()
+try:
+    print("Reading CSV and importing transactions (Atomic)...")
+    with transaction.atomic(), open(csv_file_path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
         
-        # Create transaction
-        transaction = SalesTransaction.objects.create(
-            subtotal=Decimal('0.00'),
-            tax=Decimal('0.00'),
-            discount=Decimal('0.00'),
-            total_amount=Decimal('0.00'),
-            payment_method=random.choice(['CASH', 'CARD', 'GCASH', 'PAYMAYA']),
-            amount_paid=Decimal('0.00'),
-            change_amount=Decimal('0.00'),
-            status='COMPLETED',
-            created_by=staff,
-            created_at=trans_date,
-            completed_at=trans_date
-        )
+        # Group rows by date to potentially create multi-item transactions if we wanted, 
+        # but for now let's create one transaction per row to reflect the data structure 
+        # or maybe we can group all items from the same day into a few transactions to look more natural?
+        # The CSV seems to be "Product X sold Y amount on Date Z".
+        # To make it realistic, we should probably spread this out.
+        # But to be accurate to the data, let's just ensure the totals match.
+        # We will create ONE transaction per row.
         
-        # Add 1-5 items to transaction
-        subtotal = Decimal('0.00')
-        num_items = random.randint(1, 5)
-        available_products = list(Product.objects.filter(current_stock__gt=0))
-        
-        for _ in range(num_items):
-            if not available_products:
-                break
-                
-            product = random.choice(available_products)
-            quantity = random.randint(1, 3)
+        for row in reader:
+            date_str = row['date']
+            product_name = row['product']
+            quantity = int(row['quantity_sold'])
+            price = Decimal(row['price'])
             
-            # Check stock availability
-            if product.current_stock < quantity:
+            # Parse date
+            trans_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            transaction_dates.add(trans_date)
+            # Add random time between 8 AM and 6 PM
+            trans_datetime = datetime.combine(trans_date, datetime.min.time()) + timedelta(hours=random.randint(8, 17), minutes=random.randint(0, 59))
+            trans_datetime = timezone.make_aware(trans_datetime)
+            
+            # Find product
+            try:
+                product = Product.objects.get(name=product_name)
+            except Product.DoesNotExist:
+                print(f"Warning: Product '{product_name}' not found. Skipping.")
                 continue
+                
+            # Random staff
+            staff = random.choice([owner, staff1, staff2])
             
-            item = TransactionItem.objects.create(
+            # Calculate totals
+            line_total = price * quantity
+            
+            # Create transaction
+            transaction = SalesTransaction.objects.create(
+                subtotal=line_total,
+                tax=Decimal('0.00'), # Assuming price includes tax or no tax for simplicity as per dataset
+                discount=Decimal('0.00'),
+                total_amount=line_total,
+                payment_method=random.choice(['CASH', 'CARD', 'GCASH', 'PAYMAYA']),
+                amount_paid=line_total,
+                change_amount=Decimal('0.00'),
+                status='COMPLETED',
+                created_by=staff,
+                created_at=trans_datetime,
+                completed_at=trans_datetime
+            )
+            
+            # Manually set created_at because auto_now_add might override it?
+            # actually auto_now_add=True in model usually prevents setting it.
+            # We might need to update it after creation if the model has auto_now_add=True.
+            # Let's check model definition if possible, or just update it.
+            SalesTransaction.objects.filter(id=transaction.id).update(created_at=trans_datetime, completed_at=trans_datetime)
+            
+            TransactionItem.objects.create(
                 transaction=transaction,
                 product=product,
                 quantity=quantity,
-                unit_price=product.unit_price,
+                unit_price=price,
                 discount=Decimal('0.00')
             )
-            subtotal += item.line_total
-        
-        # Update transaction totals
-        transaction.subtotal = subtotal
-        transaction.total_amount = subtotal
-        transaction.amount_paid = subtotal
-        transaction.save()
-        
-        # Complete transaction (this will create inventory movements)
-        if transaction.items.exists():
-            transaction.complete_transaction()
+            
             transaction_count += 1
+            
+            if transaction_count % 100 == 0:
+                print(f"Processed {transaction_count} transactions...")
 
-print(f"Created {transaction_count} sales transactions")
+except FileNotFoundError:
+    print(f"Error: Could not find {csv_file_path}")
+except Exception as e:
+    print(f"Error reading CSV: {e}")
+
+print(f"Created {transaction_count} sales transactions from CSV")
 
 print("Creating seasonal patterns...")
 # Create seasonal patterns
@@ -441,9 +429,14 @@ ReportSchedule.objects.create(
 )
 
 print("Creating dashboard metrics...")
-# Create dashboard metrics for past 30 days
-for days_ago in range(30, 0, -1):
-    metric_date = date.today() - timedelta(days=days_ago)
+# Create dashboard metrics for the dates in our dataset
+if not transaction_dates:
+    print("Warning: No dates found in transaction data. Generating metrics for past 30 days as fallback.")
+    for days_ago in range(30, 0, -1):
+        transaction_dates.add(date.today() - timedelta(days=days_ago))
+
+for metric_date in sorted(transaction_dates):
+    print(f"Generating metrics for {metric_date}...")
     DashboardMetric.generate_for_date(metric_date)
 
 print("Creating audit logs...")
