@@ -56,15 +56,23 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         """Get URL for product image (supports both local and Cloudinary)"""
         if obj.image:
-            image_url = obj.image.url
-            # Cloudinary URLs are already absolute (start with http)
-            if image_url.startswith('http'):
+            try:
+                image_url = obj.image.url
+                print(f"[SERIALIZER] Product {obj.id}: obj.image = {obj.image}, obj.image.url = {image_url}")
+                # Cloudinary URLs are already absolute (start with http)
+                if image_url.startswith('http'):
+                    print(f"[SERIALIZER] Returning Cloudinary URL: {image_url}")
+                    return image_url
+                # For local files, build absolute URI
+                request = self.context.get('request')
+                if request:
+                    full_url = request.build_absolute_uri(image_url)
+                    print(f"[SERIALIZER] Returning local URL: {full_url}")
+                    return full_url
                 return image_url
-            # For local files, build absolute URI
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(image_url)
-            return image_url
+            except Exception as e:
+                print(f"[SERIALIZER] Error getting image URL: {e}")
+                return None
         return None
 
 
@@ -94,15 +102,20 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         """Get URL for product image (supports both local and Cloudinary)"""
         if obj.image:
-            image_url = obj.image.url
-            # Cloudinary URLs are already absolute (start with http)
-            if image_url.startswith('http'):
+            try:
+                image_url = obj.image.url
+                print(f"[DETAIL SERIALIZER] Product {obj.id}: obj.image = {obj.image}, obj.image.url = {image_url}")
+                # Cloudinary URLs are already absolute (start with http)
+                if image_url.startswith('http'):
+                    return image_url
+                # For local files, build absolute URI
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(image_url)
                 return image_url
-            # For local files, build absolute URI
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(image_url)
-            return image_url
+            except Exception as e:
+                print(f"[DETAIL SERIALIZER] Error: {e}")
+                return None
         return None
 
 
