@@ -6,7 +6,7 @@ import {
     Activity, Search, Filter, Download, Calendar,
     User, Clock, ArrowUpDown, ChevronDown, Loader2,
     ShoppingCart, Package, RotateCcw, DollarSign, X,
-    ChevronRight, AlertTriangle, Eye
+    ChevronRight, AlertTriangle, Eye, CheckSquare, Square
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -19,8 +19,8 @@ const THEME = {
     pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
     cardBase: "bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 shadow-xl",
     inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white",
-    buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
-    buttonDanger: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
+    buttonPrimary: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200",
+    buttonDanger: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200",
     tableHeader: "bg-gradient-to-br from-[#F5E6E0]/50 to-[#E8D5C4]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30",
     tableRow: "hover:bg-[#8FBC8F]/5 dark:hover:bg-[#8FBC8F]/10 transition-colors duration-200"
 };
@@ -43,6 +43,7 @@ const ActivityLogPage = () => {
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isVoidModalOpen, setIsVoidModalOpen] = useState(false);
     const [voidReason, setVoidReason] = useState('');
+    const [selectedItemsToRefund, setSelectedItemsToRefund] = useState([]);
 
     // Fetch users for employee filter
     const { data: usersData } = useQuery({
@@ -93,11 +94,20 @@ const ActivityLogPage = () => {
     });
 
     const handleVoidSubmit = () => {
+        if (selectedItemsToRefund.length === 0) {
+            toast.error("Please select at least one product to refund.");
+            return;
+        }
         if (!voidReason.trim()) {
             toast.error("Please provide a reason for voiding/returning.");
             return;
         }
-        voidMutation.mutate({ id: selectedTransaction.id, reason: voidReason });
+        // Include selected items in the reason for tracking
+        const selectedProductNames = selectedItemsToRefund.map(item =>
+            `${item.product_name} x${item.quantity}`
+        ).join(', ');
+        const enhancedReason = `Items returned: [${selectedProductNames}]. Reason: ${voidReason}`;
+        voidMutation.mutate({ id: selectedTransaction.id, reason: enhancedReason });
     };
 
     const users = usersData || [];
@@ -105,20 +115,39 @@ const ActivityLogPage = () => {
 
     // Transform transactions into activity log entries
     const activityLog = useMemo(() => {
-        let activities = transactions.map(txn => ({
-            id: txn.id,
-            timestamp: new Date(txn.created_at),
-            employee: txn.user_name || txn.created_by_name || 'System',
-            employeeId: txn.user || txn.created_by,
-            action: txn.status === 'VOID' ? 'REFUND' : 'SALE',
-            status: txn.status,
-            description: `#${txn.transaction_number}`,
-            amount: parseFloat(txn.total_amount) || 0,
-            details: txn.payment_method || 'Cash',
-            customer: txn.customer_name || 'Walk-in',
-            reference: txn.transaction_number,
-            rawTransaction: txn
-        }));
+        let activities = transactions.map(txn => {
+            // Parse refund details from void_reason if it's a VOID transaction
+            let refundInfo = null;
+            if (txn.status === 'VOID' && txn.void_reason) {
+                // Try to extract refunded items from the format: "Items returned: [Product x2, Product2 x1]. Reason: ..."
+                const match = txn.void_reason.match(/Items returned: \[([^\]]+)\]/);
+                if (match) {
+                    const refundedItems = match[1].split(',').map(s => s.trim()).filter(s => s);
+                    const totalItems = txn.items?.length || 0;
+                    refundInfo = {
+                        refundedCount: refundedItems.length,
+                        totalCount: totalItems,
+                        isPartial: refundedItems.length < totalItems && totalItems > 0
+                    };
+                }
+            }
+
+            return {
+                id: txn.id,
+                timestamp: new Date(txn.created_at),
+                employee: txn.user_name || txn.created_by_name || 'System',
+                employeeId: txn.user || txn.created_by,
+                action: txn.status === 'VOID' ? 'REFUND' : 'SALE',
+                status: txn.status,
+                description: `#${txn.transaction_number}`,
+                amount: parseFloat(txn.total_amount) || 0,
+                details: txn.payment_method || 'Cash',
+                customer: txn.customer_name || 'Walk-in',
+                reference: txn.transaction_number,
+                refundInfo: refundInfo,
+                rawTransaction: txn
+            };
+        });
 
         // Filter by action type
         if (actionType) {
@@ -529,10 +558,17 @@ const ActivityLogPage = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${getActionStyle(activity.action)}`}>
-                                                    {getActionIcon(activity.action)}
-                                                    {activity.action}
-                                                </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold w-fit ${getActionStyle(activity.action)}`}>
+                                                        {getActionIcon(activity.action)}
+                                                        {activity.action}
+                                                    </span>
+                                                    {activity.refundInfo && (
+                                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium pl-1">
+                                                            {activity.refundInfo.refundedCount} of {activity.refundInfo.totalCount} items returned
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <p className={`font-medium text-sm ${THEME.headingText}`}>{activity.description}</p>
@@ -577,7 +613,7 @@ const ActivityLogPage = () => {
                     {/* Modal */}
                     <div className={`relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl ${THEME.cardBase}`}>
                         {/* Modal Header */}
-                        <div className="sticky top-0 bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] p-5 flex items-center justify-between">
+                        <div className="sticky top-0 bg-gradient-to-r from-[#5F8F5F] to-[#7DAF7D] p-5 flex items-center justify-between">
                             <div>
                                 <h2 className="text-xl font-bold text-white">Transaction Details</h2>
                                 <p className="text-sm text-white/80">{details?.transaction_number}</p>
@@ -663,13 +699,17 @@ const ActivityLogPage = () => {
                                         <RotateCcw className="w-4 h-4" /> Return / Void Transaction
                                     </h4>
                                     <p className="text-xs text-[#2F4F4F]/70 dark:text-gray-400 mb-4">
-                                        Returning this transaction will restore all items to inventory and mark the sale as void.
+                                        Click below to select specific products you want to refund.
                                     </p>
                                     <button
-                                        onClick={() => setIsVoidModalOpen(true)}
+                                        onClick={() => {
+                                            // Pre-select all items when opening the void modal
+                                            setSelectedItemsToRefund(details?.items || []);
+                                            setIsVoidModalOpen(true);
+                                        }}
                                         className={`w-full py-2.5 rounded-lg text-sm font-bold ${THEME.buttonPrimary}`}
                                     >
-                                        Return / Void Items
+                                        Select Products to Return
                                     </button>
                                 </div>
                             )}
@@ -678,40 +718,133 @@ const ActivityLogPage = () => {
                 </div>
             )}
 
-            {/* Void Confirmation Modal */}
+            {/* Void Confirmation Modal with Product Selection */}
             {isVoidModalOpen && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className={`w-full max-w-md p-6 rounded-2xl shadow-2xl ${THEME.cardBase}`}>
-                        <h3 className={`text-xl font-extrabold mb-2 ${THEME.headingText}`}>Confirm Return/Void</h3>
-                        <p className={`text-sm mb-4 ${THEME.subText}`}>
-                            Please enter the reason for voiding transaction <b>{selectedTransaction?.transaction_number}</b>.
-                        </p>
+                    <div className={`w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col rounded-2xl shadow-2xl ${THEME.cardBase}`}>
+                        {/* Header */}
+                        <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className={`text-xl font-extrabold mb-1 ${THEME.headingText}`}>Select Products to Refund</h3>
+                            <p className={`text-sm ${THEME.subText}`}>
+                                Transaction <b>{selectedTransaction?.transaction_number}</b>
+                            </p>
+                        </div>
 
-                        <textarea
-                            value={voidReason}
-                            onChange={(e) => setVoidReason(e.target.value)}
-                            placeholder="e.g. Customer returned items, Wrong entry..."
-                            className={`w-full h-24 p-3 rounded-xl mb-4 text-sm resize-none ${THEME.inputBase}`}
-                            autoFocus
-                        />
+                        {/* Product Selection List */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50 dark:bg-[#151515]">
+                            {/* Select All / Deselect All */}
+                            <div className="flex gap-3 mb-4">
+                                <button
+                                    onClick={() => setSelectedItemsToRefund(details?.items || [])}
+                                    className="flex-1 py-3 px-4 text-sm font-bold rounded-xl bg-[#8FBC8F] text-white hover:bg-[#7DAF7D] shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    <CheckSquare className="w-4 h-4" />
+                                    Select All
+                                </button>
+                                <button
+                                    onClick={() => setSelectedItemsToRefund([])}
+                                    className="flex-1 py-3 px-4 text-sm font-bold rounded-xl bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Square className="w-4 h-4" />
+                                    Deselect All
+                                </button>
+                            </div>
 
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setIsVoidModalOpen(false);
-                                    setVoidReason('');
-                                }}
-                                className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleVoidSubmit}
-                                disabled={voidMutation.isPending}
-                                className={`flex-1 py-2.5 rounded-xl font-bold ${THEME.buttonPrimary} disabled:opacity-50`}
-                            >
-                                {voidMutation.isPending ? 'Processing...' : 'Confirm Return'}
-                            </button>
+                            {/* Product Items */}
+                            {details?.items?.map((item, idx) => {
+                                const isSelected = selectedItemsToRefund.some(i => i.product === item.product || i.id === item.id);
+                                return (
+                                    <div
+                                        key={idx}
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                setSelectedItemsToRefund(prev => prev.filter(i => i.product !== item.product && i.id !== item.id));
+                                            } else {
+                                                setSelectedItemsToRefund(prev => [...prev, item]);
+                                            }
+                                        }}
+                                        className={`p-3 rounded-xl cursor-pointer transition-all border-2 ${isSelected
+                                            ? 'border-[#8FBC8F] bg-[#8FBC8F]/10 dark:bg-[#8FBC8F]/20'
+                                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e1e1e] hover:border-gray-300 dark:hover:border-gray-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {/* Checkbox */}
+                                            <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${isSelected
+                                                ? 'bg-[#8FBC8F] text-white'
+                                                : 'border-2 border-gray-300 dark:border-gray-600'
+                                                }`}>
+                                                {isSelected && <CheckSquare className="w-3.5 h-3.5" />}
+                                            </div>
+
+                                            {/* Product Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`font-bold text-sm truncate ${THEME.headingText}`}>
+                                                    {item.product_name}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    {item.quantity}x @ {formatCurrency(item.unit_price)}
+                                                </p>
+                                            </div>
+
+                                            {/* Line Total */}
+                                            <span className={`font-bold text-sm ${isSelected ? 'text-[#8FBC8F]' : THEME.headingText}`}>
+                                                {formatCurrency(item.line_total || (item.quantity * item.unit_price))}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Refund Summary & Reason */}
+                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1e1e1e]">
+                            {/* Refund Total */}
+                            <div className="flex justify-between items-center mb-3 p-3 rounded-lg bg-[#8FBC8F]/10 dark:bg-[#8FBC8F]/20">
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-300">Refund Total:</span>
+                                <span className="text-xl font-extrabold text-[#8FBC8F]">
+                                    {formatCurrency(
+                                        selectedItemsToRefund.reduce((sum, item) =>
+                                            sum + (item.line_total || (item.quantity * item.unit_price)), 0
+                                        )
+                                    )}
+                                    <span className="text-xs text-gray-500 ml-1">
+                                        of {formatCurrency(details?.total_amount)}
+                                    </span>
+                                </span>
+                            </div>
+
+                            {/* Reason Input */}
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                Reason for Return *
+                            </label>
+                            <textarea
+                                value={voidReason}
+                                onChange={(e) => setVoidReason(e.target.value)}
+                                placeholder="e.g. Customer returned items, Wrong entry..."
+                                className={`w-full h-20 p-3 rounded-xl mb-4 text-sm resize-none ${THEME.inputBase}`}
+                            />
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => {
+                                        setIsVoidModalOpen(false);
+                                        setVoidReason('');
+                                        setSelectedItemsToRefund([]);
+                                    }}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-base text-gray-700 dark:text-white bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 shadow-md hover:shadow-lg transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleVoidSubmit}
+                                    disabled={voidMutation.isPending || selectedItemsToRefund.length === 0}
+                                    className="flex-[1.5] py-3.5 rounded-xl font-bold text-base bg-gradient-to-r from-[#E57373] to-[#EF5350] text-white shadow-lg shadow-red-300/40 hover:shadow-red-400/60 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-md"
+                                >
+                                    {voidMutation.isPending ? 'Processing...' : `🔄 Confirm Return (${selectedItemsToRefund.length} items)`}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

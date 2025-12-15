@@ -3,18 +3,18 @@ import { X, Edit, Trash2, Tags, Plus, ArrowLeft, Save } from 'lucide-react';
 
 // --- THEME CONSTANTS ---
 const THEME = {
-    // Text Colors
-    primaryText: "text-[#8FBC8F] dark:text-[#A8D4A8]",
-    headingText: "text-gray-900 dark:text-white",
-    subText: "text-gray-500 dark:text-gray-400",
-    
-    // Components
-    modalBg: "bg-white dark:bg-[#1e1e1e]",
-    inputBase: "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#8FBC8F]/30 bg-white dark:bg-[#1A1A1D] text-gray-900 dark:text-white font-medium focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600",
-    
-    // Buttons
-    buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
-    buttonSecondary: "border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+  // Text Colors
+  primaryText: "text-[#8FBC8F] dark:text-[#A8D4A8]",
+  headingText: "text-gray-900 dark:text-white",
+  subText: "text-gray-500 dark:text-gray-400",
+
+  // Components
+  modalBg: "bg-white dark:bg-[#1e1e1e]",
+  inputBase: "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#8FBC8F]/30 bg-white dark:bg-[#1A1A1D] text-gray-900 dark:text-white font-medium focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600",
+
+  // Buttons
+  buttonPrimary: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200",
+  buttonSecondary: "border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
 };
 
 const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit, categories = [], onEditCategory, onDeleteCategory }) => {
@@ -68,12 +68,12 @@ const CategoryModal = ({ isOpen, onClose, onSave, categoryToEdit, categories = [
   return (
     <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className={`${THEME.modalBg} rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-[#8FBC8F]/20 flex flex-col`}>
-        
+
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#8FBC8F]/10 bg-gray-50/50 dark:bg-[#1e1e1e]">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-white dark:bg-[#1A1A1D] rounded-2xl shadow-sm border border-gray-100 dark:border-[#8FBC8F]/20">
-               <Tags className="w-6 h-6 text-[#8FBC8F]" />
+              <Tags className="w-6 h-6 text-[#8FBC8F]" />
             </div>
             <div>
               <h3 className={`text-xl font-bold ${THEME.headingText}`}>

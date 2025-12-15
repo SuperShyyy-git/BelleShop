@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import userService from '../services/userService';
 import authService from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +17,7 @@ const THEME = {
 
     // Gradients
     gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
-    gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+    gradientBg: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D]",
 
     // Backgrounds
     pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
@@ -27,7 +27,7 @@ const THEME = {
     inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
 
     // Buttons
-    buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200"
+    buttonPrimary: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200"
 };
 
 const ProfilePage = () => {
@@ -50,6 +50,8 @@ const ProfilePage = () => {
     const [phoneError, setPhoneError] = useState('');
     const [profilePicture, setProfilePicture] = useState(null);
     const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+    const [originalData, setOriginalData] = useState(null);
+    const [showUnsavedModal, setShowUnsavedModal] = useState(false);
 
     // --- Password Requirements Check ---
     const checkPasswordRequirements = (pwd) => {
@@ -66,6 +68,41 @@ const ProfilePage = () => {
         return reqs.minLength && reqs.hasUppercase && reqs.hasLowercase && reqs.hasNumber;
     };
 
+    // --- Check if form has changes ---
+    const hasChanges = () => {
+        if (!originalData) return false;
+
+        // Check if any field has changed
+        const fieldsChanged =
+            formData.username !== originalData.username ||
+            formData.full_name !== originalData.full_name ||
+            formData.email !== originalData.email ||
+            formData.phone_number !== originalData.phone_number ||
+            formData.password !== '' ||
+            formData.password_confirm !== '' ||
+            profilePicture !== null;
+
+        return fieldsChanged;
+    };
+
+    // --- Browser Navigation Warning ---
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (hasChanges()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [formData, originalData, profilePicture]);
+
+    // --- Handle Discard with Modal Close ---
+    const handleCancelNavigation = () => {
+        setShowUnsavedModal(false);
+    };
+
     // --- 1. Fetch Current User Data ---
     const fetchUserData = async () => {
         setLoading(true);
@@ -74,14 +111,16 @@ const ProfilePage = () => {
             const user = response.data;
 
             setUserData(user);
-            setFormData({
+            const initialFormData = {
                 username: user.username || '',
                 full_name: user.full_name || '',
                 email: user.email || '',
                 phone_number: user.phone_number || user.phone || '',
                 password: '',
                 password_confirm: '',
-            });
+            };
+            setFormData(initialFormData);
+            setOriginalData(initialFormData);
         } catch (error) {
             console.error("Failed to fetch user data:", error);
             toast.error("Failed to load profile details.");
@@ -210,7 +249,19 @@ const ProfilePage = () => {
         }
     };
 
-    // --- 4. Handle Logout ---
+    // --- 4. Handle Discard Changes ---
+    const handleDiscardChanges = () => {
+        if (!originalData) return;
+
+        // Reset form to original data
+        setFormData({ ...originalData });
+        setProfilePicture(null);
+        setProfilePicturePreview(null);
+        setPhoneError('');
+        toast.success("Changes discarded");
+    };
+
+    // --- 5. Handle Logout ---
     const handleLogout = () => {
         authService.logout();
         toast.success("Logged out successfully!");
@@ -482,17 +533,28 @@ const ProfilePage = () => {
                                 </div>
                             </div>
 
-                            {/* Submit Button */}
-                            <div className="pt-2 flex justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={isSaving}
-                                    className={`px-8 py-3 rounded-xl font-bold text-white flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${THEME.buttonPrimary}`}
-                                >
-                                    <Save className="w-5 h-5" />
-                                    {isSaving ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            </div>
+                            {/* Action Buttons - Only show when there are changes */}
+                            {hasChanges() && (
+                                <div className="pt-2 flex justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleDiscardChanges}
+                                        disabled={isSaving}
+                                        className="px-6 py-3 rounded-xl font-bold border-2 border-[#8FBC8F] dark:border-[#8FBC8F]/50 text-[#8FBC8F] dark:text-[#A8D4A8] hover:bg-[#8FBC8F]/5 dark:hover:bg-[#8FBC8F]/10 transition-all duration-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed animate-in fade-in slide-in-from-bottom-2"
+                                    >
+                                        <X className="w-5 h-5" />
+                                        Discard Changes
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSaving}
+                                        className={`px-8 py-3 rounded-xl font-bold text-white flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed ${THEME.buttonPrimary} animate-in fade-in slide-in-from-bottom-2 duration-200`}
+                                    >
+                                        <Save className="w-5 h-5" />
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            )}
                         </form>
                     </div>
 

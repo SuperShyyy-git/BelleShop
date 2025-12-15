@@ -8,13 +8,13 @@ const THEME = {
   subText: "text-gray-500 dark:text-gray-400",
 
   gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
-  gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+  gradientBg: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D]",
 
   modalBg: "bg-white dark:bg-[#1e1e1e]",
 
   inputBase: "w-full px-4 py-3 rounded-xl border-2 border-[#E8D5C4] dark:border-[#8FBC8F]/30 bg-white dark:bg-[#1A1A1D] text-gray-900 dark:text-white font-medium focus:border-[#8FBC8F] dark:focus:border-[#8FBC8F] outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600",
 
-  buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
+  buttonPrimary: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200",
 };
 
 const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
@@ -107,9 +107,16 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
     // Simulate processing
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Create receipt data
+    // Create receipt data with product names for display
     const receipt = {
       ...checkoutData,
+      items: cartItems.map(item => ({
+        product: item.id,
+        product_name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        discount: 0
+      })),
       transactionId: 'TRX' + Date.now(),
       timestamp: new Date(),
       change: change
@@ -229,7 +236,7 @@ const CheckoutModal = ({ isOpen, onClose, cartItems, totals, onCheckout }) => {
               {receiptData.items.map((item, idx) => (
                 <div key={idx} className="space-y-0.5">
                   <div className="flex justify-between">
-                    <span className="truncate max-w-[140px]">{item.product}</span>
+                    <span className="truncate max-w-[140px]">{item.product_name}</span>
                     <span className="font-semibold">₱{(item.quantity * item.unit_price).toFixed(2)}</span>
                   </div>
                   <div className="text-gray-500 text-[9px] pl-2">

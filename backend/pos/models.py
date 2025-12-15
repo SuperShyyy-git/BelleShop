@@ -233,6 +233,10 @@ class TransactionItem(models.Model):
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     line_total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     
+    # Refund tracking
+    is_refunded = models.BooleanField(default=False, help_text='Whether this item has been refunded')
+    refunded_at = models.DateTimeField(null=True, blank=True, help_text='When this item was refunded')
+    
     notes = models.TextField(blank=True, help_text='Special instructions or notes')
     
     history = HistoricalRecords() # ADDED

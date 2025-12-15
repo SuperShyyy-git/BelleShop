@@ -7,16 +7,16 @@ const THEME = {
   primaryText: "text-[#8FBC8F] dark:text-[#A8D4A8]",
   headingText: "text-gray-900 dark:text-white",
   subText: "text-gray-500 dark:text-gray-400",
-  
+
   // Gradients
   gradientText: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] bg-clip-text text-transparent",
-  
+
   // Components
   modalBg: "bg-white dark:bg-[#1e1e1e]",
   inputBase: "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#8FBC8F]/30 bg-white dark:bg-[#1A1A1D] text-gray-900 dark:text-white font-medium focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600",
-  
+
   // Buttons
-  buttonPrimary: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200",
+  buttonPrimary: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200",
   buttonSecondary: "border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
 };
 
@@ -25,7 +25,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
     name: '', category: '', supplier: '', unit_price: '', cost_price: '',
     current_stock: '', reorder_level: '10', sku: '', image: undefined // undefined = keep existing
   });
-  
+
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -101,7 +101,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
     try {
       // --- FIX: Send plain object ---
@@ -130,7 +130,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
   return (
     <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className={`${THEME.modalBg} rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200 dark:border-[#8FBC8F]/20 flex flex-col`}>
-        
+
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-[#8FBC8F]/10 bg-gray-50/50 dark:bg-[#1e1e1e]">
           <div>
@@ -160,9 +160,9 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
                   <div className="relative rounded-2xl overflow-hidden border-2 border-[#8FBC8F] shadow-md aspect-square group">
                     <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button type="button" onClick={handleRemoveImage} className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-all transform scale-90 hover:scale-100">
+                      <button type="button" onClick={handleRemoveImage} className="bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-all transform scale-90 hover:scale-100">
                         <Trash2 className="w-5 h-5" />
-                        </button>
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -185,12 +185,12 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
                 <input type="text" name="name" value={formData.name} onChange={handleChange} className={THEME.inputBase} placeholder="e.g. Red Roses Bouquet" disabled={isSubmitting} />
                 {errors.name && <p className={errorClass}>{errors.name}</p>}
               </div>
-              
+
               <div>
                 <label className={labelClass}>SKU</label>
                 <input type="text" name="sku" value={formData.sku} onChange={handleChange} className={THEME.inputBase} placeholder="e.g. ROS-001" disabled={isSubmitting} />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Category <span className="text-[#8FBC8F]">*</span></label>
@@ -233,7 +233,7 @@ const AddProductModal = ({ isOpen, onClose, onSave, categories, suppliers, produ
             </div>
 
             <div className="bg-gray-50 dark:bg-[#1A1A1D] p-5 rounded-2xl border border-gray-200 dark:border-[#8FBC8F]/10">
-               <h4 className={`text-sm font-bold ${THEME.primaryText} mb-4 flex items-center gap-2 uppercase tracking-wider`}><Package size={16} /> Inventory</h4>
+              <h4 className={`text-sm font-bold ${THEME.primaryText} mb-4 flex items-center gap-2 uppercase tracking-wider`}><Package size={16} /> Inventory</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Current Stock</label>

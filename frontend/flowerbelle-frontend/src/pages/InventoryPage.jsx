@@ -20,14 +20,14 @@ const THEME = {
     headingText: "text-[#2F4F4F] dark:text-white",
     subText: "text-gray-500 dark:text-gray-400",
     gradientText: "bg-gradient-to-r from-[#6B8E6B] to-[#8FBC8F] bg-clip-text text-transparent",
-    gradientBg: "bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8]",
+    gradientBg: "bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D]",
     pageBg: "bg-gradient-to-br from-[#FFF8F0] via-[#F5E6E0] to-[#E8D5C4] dark:from-[#1A1A1D] dark:via-[#1A1A1D] dark:to-[#1E2420]",
     cardBase: "bg-white/90 dark:bg-[#1e1e1e]/90 backdrop-blur-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 shadow-xl",
     inputBase: "bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 focus:border-[#8FBC8F] dark:focus:border-[#A8D4A8] text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
     tableHeader: "bg-gradient-to-br from-[#F5E6E0]/50 to-[#E8D5C4]/30 dark:from-[#1A1A1D]/50 dark:to-[#1A1A1D]/30 text-gray-500 dark:text-gray-400",
     tableRowHover: "hover:bg-gradient-to-r hover:from-[#8FBC8F]/10 hover:to-transparent dark:hover:from-[#8FBC8F]/10",
     buttonOutline: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-white dark:bg-[#1A1A1D] border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 text-[#8FBC8F] dark:text-[#8FBC8F] hover:bg-gradient-to-br hover:from-[#8FBC8F]/5 hover:to-[#A8D4A8]/5 hover:border-[#8FBC8F] dark:hover:border-[#8FBC8F] transition-all duration-200 font-medium shadow-sm hover:shadow-lg hover:shadow-[#8FBC8F]/20 rounded-xl flex items-center gap-2",
-    buttonPrimary: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white font-bold rounded-xl shadow-lg shadow-[#8FBC8F]/30 hover:shadow-[#8FBC8F]/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
+    buttonPrimary: "px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#2E5B2E] to-[#3D6B3D] text-white font-bold rounded-xl shadow-lg shadow-[#2E5B2E]/50 hover:shadow-[#2E5B2E]/70 hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
 };
 
 const getErrorMessage = (error) => {
