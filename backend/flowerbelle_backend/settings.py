@@ -91,15 +91,15 @@ WSGI_APPLICATION = 'flowerbelle_backend.wsgi.application'
 # ==========================================
 
 # The External URL you provided
-EXTERNAL_DB_URL = "postgresql://flowerbelle_db_9lwt_user:fDUORs1PJzDTB5qweIEoaYhqbmoUZrta@dpg-d4i7nf9r0fns73ambql0-a.singapore-postgres.render.com/flowerbelle_db_9lwt"
+EXTERNAL_DB_URL = "postgresql://bellestudio_db_user:zN2T7EYZe63JSQXQsOYUees16YBHgRRh@dpg-d5eeebuuk2gs73ec2vig-a.singapore-postgres.render.com/bellestudio_db"
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'flowerbelle_db_9lwt',
-        'USER': 'flowerbelle_db_9lwt_user',
-        'PASSWORD': 'fDUORs1PJzDTB5qweIEoaYhqbmoUZrta',
-        'HOST': 'dpg-d4i7nf9r0fns73ambql0-a.singapore-postgres.render.com',
+        'NAME': 'bellestudio_db',
+        'USER': 'bellestudio_db_user',
+        'PASSWORD': 'zN2T7EYZe63JSQXQsOYUees16YBHgRRh',
+        'HOST': 'dpg-d5eeebuuk2gs73ec2vig-a.singapore-postgres.render.com',
         'PORT': '5432',
     }
 }
