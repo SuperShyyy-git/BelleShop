@@ -11,13 +11,18 @@ class IsOwner(permissions.BasePermission):
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """
-    Custom permission to allow users with the 'OWNER' role full access, 
+    Custom permission to allow users with the 'OWNER' or 'MANAGER' role full access, 
     while other authenticated users can only read.
     """
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated
-        return request.user and request.user.is_authenticated and request.user.role == 'OWNER'
+        # Allow both OWNER and MANAGER to perform write operations (including DELETE)
+        return (
+            request.user and 
+            request.user.is_authenticated and 
+            request.user.role in ['OWNER', 'MANAGER']
+        )
 
 
 class IsUserAdmin(permissions.BasePermission):
