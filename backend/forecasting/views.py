@@ -268,6 +268,16 @@ class ForecastSummaryView(APIView):
             else:
                 days_until_stockout = 999
             
+            # Build daily forecasts list for the chart
+            daily_forecasts = []
+            for f in forecasts_30.order_by('forecast_date'):
+                daily_forecasts.append({
+                    "date": f.forecast_date.strftime("%b %d"),
+                    "predicted_sales": f.predicted_demand,
+                    "confidence_lower": f.confidence_lower,
+                    "confidence_upper": f.confidence_upper,
+                })
+            
             return Response({
                 "product_name": product.name,
                 "current_stock": product.current_stock,
@@ -276,6 +286,7 @@ class ForecastSummaryView(APIView):
                 "recommended_order": latest_rec.recommended_order_quantity if latest_rec else 0,
                 "days_until_stockout": days_until_stockout if days_until_stockout < 999 else None,
                 "priority": latest_rec.priority if latest_rec else 'NORMAL',
+                "daily_forecasts": daily_forecasts,
             })
             
         except Product.DoesNotExist:
