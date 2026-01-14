@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from .views import (
     LoginView, LogoutView, CurrentUserView,
     UserListCreateView, UserDetailView,
-    ChangePasswordView, AuditLogListView
+    ChangePasswordView, AuditLogListView, RecentActivityView
 )
 
 app_name = 'accounts'
@@ -35,4 +35,7 @@ urlpatterns = [
 
     # Audit Logs
     path('audit-logs/', AuditLogListView.as_view(), name='audit-logs'),
+    
+    # Recent Activity (for notification dropdown)
+    path('activity/recent/', RecentActivityView.as_view(), name='recent-activity'),
 ]

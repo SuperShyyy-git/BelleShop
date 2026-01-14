@@ -30,7 +30,9 @@ const Layout = ({ children }) => {
   // 2. Notification State
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const [activityLog, setActivityLog] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('activity'); // 'alerts' or 'activity'
 
   const { user, logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -50,9 +52,16 @@ const Layout = ({ children }) => {
   const fetchNotifications = async () => {
     try {
       if (user) {
-        const response = await api.get('/inventory/notifications/recent/');
-        setNotifications(response.data);
-        setUnreadCount(response.data.length);
+        // Fetch low stock alerts
+        const alertsResponse = await api.get('/inventory/notifications/recent/');
+        setNotifications(alertsResponse.data);
+
+        // Fetch recent activity log
+        const activityResponse = await api.get('/auth/activity/recent/');
+        setActivityLog(activityResponse.data);
+
+        // Unread count = low stock alerts + activity log count
+        setUnreadCount(alertsResponse.data.length + activityResponse.data.length);
       }
     } catch (error) {
       console.error("Failed to fetch notifications", error);
@@ -69,7 +78,7 @@ const Layout = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // 5. NEW FUNCTION: Mark notification as read (Acknowledge)
+  // 5. Mark low stock alert as read (Acknowledge)
   const markAsRead = async (id, e) => {
     e.stopPropagation(); // Prevent dropdown from closing or navigation
     e.preventDefault();
@@ -81,12 +90,40 @@ const Layout = ({ children }) => {
       // Update UI immediately without waiting for re-fetch
       const updatedList = notifications.filter(n => n.id !== id);
       setNotifications(updatedList);
-      setUnreadCount(updatedList.length);
+      setUnreadCount(updatedList.length + activityLog.length);
 
     } catch (error) {
       toast.error("Failed to mark as read");
       console.error(error);
     }
+  };
+
+  // Helper to get action icon and style
+  const getActionStyle = (action) => {
+    switch (action) {
+      case 'CREATE': return { icon: '➕', color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' };
+      case 'UPDATE': return { icon: '✏️', color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-900/30' };
+      case 'DELETE': return { icon: '🗑️', color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' };
+      case 'LOGIN': return { icon: '🔓', color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-900/30' };
+      case 'LOGOUT': return { icon: '🔒', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' };
+      default: return { icon: '📋', color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800' };
+    }
+  };
+
+  // Helper to format activity description
+  const formatActivityDescription = (log) => {
+    const actionVerb = {
+      'CREATE': 'added',
+      'UPDATE': 'updated',
+      'DELETE': 'deleted',
+      'LOGIN': 'logged in',
+      'LOGOUT': 'logged out'
+    }[log.action] || log.action.toLowerCase();
+
+    if (log.action === 'LOGIN' || log.action === 'LOGOUT') {
+      return `${log.user_name} ${actionVerb}`;
+    }
+    return `${log.user_name} ${actionVerb} ${log.table_name.replace('_', ' ')}`;
   };
 
   const menuItems = [
@@ -259,58 +296,122 @@ const Layout = ({ children }) => {
               {showNotifications && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-                  <div className="absolute right-0 top-12 w-80 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="absolute right-0 top-12 w-96 bg-white dark:bg-[#1e1e1e] border border-gray-200 dark:border-gray-800 rounded-xl shadow-lg z-50 overflow-hidden">
+                    {/* Header */}
                     <div className="p-3 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
                       <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
-                      <span className="text-xs text-gray-500">{unreadCount} Pending</span>
+                      <span className="text-xs text-gray-500">{unreadCount} Items</span>
                     </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((alert) => (
-                          <div
-                            key={alert.id}
-                            className="p-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 flex justify-between items-start group"
-                          >
-                            <Link
-                              to={`/inventory?search=${encodeURIComponent(alert.product_name)}`}
-                              onClick={() => setShowNotifications(false)}
-                              className="flex gap-2 flex-1"
-                            >
-                              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{alert.product_name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  Current: {alert.current_stock} / Min: {alert.reorder_level}
-                                </p>
-                                <p className="text-[10px] text-gray-400 mt-1">
-                                  {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
-                                </p>
-                              </div>
-                            </Link>
 
-                            {/* MARK AS READ BUTTON */}
-                            <button
-                              onClick={(e) => markAsRead(alert.id, e)}
-                              className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors"
-                              title="Mark as Resolved"
-                            >
-                              <Check className="w-4 h-4" />
-                            </button>
+                    {/* Tabs */}
+                    <div className="flex border-b border-gray-200 dark:border-gray-800">
+                      <button
+                        onClick={() => setActiveTab('activity')}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${activeTab === 'activity'
+                          ? 'text-[#8FBC8F] border-b-2 border-[#8FBC8F] bg-[#8FBC8F]/5'
+                          : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                      >
+                        📋 Activity ({activityLog.length})
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('alerts')}
+                        className={`flex-1 py-2 text-xs font-medium transition-colors ${activeTab === 'alerts'
+                          ? 'text-amber-500 border-b-2 border-amber-500 bg-amber-50 dark:bg-amber-900/10'
+                          : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                      >
+                        ⚠️ Alerts ({notifications.length})
+                      </button>
+                    </div>
+
+                    {/* Content based on active tab */}
+                    <div className="max-h-72 overflow-y-auto">
+                      {activeTab === 'activity' ? (
+                        // Activity Tab
+                        activityLog.length > 0 ? (
+                          activityLog.map((log) => {
+                            const style = getActionStyle(log.action);
+                            return (
+                              <div
+                                key={log.id}
+                                className="p-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                              >
+                                <div className="flex gap-3">
+                                  <div className={`w-8 h-8 rounded-lg ${style.bg} flex items-center justify-center text-sm flex-shrink-0`}>
+                                    {style.icon}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                      {formatActivityDescription(log)}
+                                    </p>
+                                    {log.description && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+                                        {log.description}
+                                      </p>
+                                    )}
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                      {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <div className="p-6 text-center text-sm text-gray-500">
+                            No recent activity
                           </div>
-                        ))
+                        )
                       ) : (
-                        <div className="p-6 text-center text-sm text-gray-500">
-                          No new notifications
-                        </div>
+                        // Alerts Tab
+                        notifications.length > 0 ? (
+                          notifications.map((alert) => (
+                            <div
+                              key={alert.id}
+                              className="p-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 flex justify-between items-start group"
+                            >
+                              <Link
+                                to={`/inventory?search=${encodeURIComponent(alert.product_name)}`}
+                                onClick={() => setShowNotifications(false)}
+                                className="flex gap-2 flex-1"
+                              >
+                                <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">{alert.product_name}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Current: {alert.current_stock} / Min: {alert.reorder_level}
+                                  </p>
+                                  <p className="text-[10px] text-gray-400 mt-1">
+                                    {formatDistanceToNow(new Date(alert.created_at), { addSuffix: true })}
+                                  </p>
+                                </div>
+                              </Link>
+
+                              {/* MARK AS READ BUTTON */}
+                              <button
+                                onClick={(e) => markAsRead(alert.id, e)}
+                                className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors"
+                                title="Mark as Resolved"
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-6 text-center text-sm text-gray-500">
+                            No pending alerts
+                          </div>
+                        )
                       )}
                     </div>
+
+                    {/* Footer */}
                     <div className="p-2 border-t border-gray-200 dark:border-gray-800 text-center">
                       <Link
-                        to="/inventory"
+                        to={activeTab === 'activity' ? "/activity-log" : "/inventory"}
                         onClick={() => setShowNotifications(false)}
-                        className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-500"
+                        className="text-xs font-medium text-[#8FBC8F] hover:text-[#6B8E6B]"
                       >
-                        View Inventory
+                        {activeTab === 'activity' ? 'View Full Activity Log' : 'View Inventory'}
                       </Link>
                     </div>
                   </div>

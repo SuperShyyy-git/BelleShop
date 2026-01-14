@@ -228,10 +228,28 @@ class AuditLogListView(generics.ListAPIView):
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwner] 
     
+    @property
+    def paginator(self):
+        """Disable pagination when 'export' query param is set"""
+        if self.request.query_params.get('export'):
+            return None
+        return super().paginator
+    
     def get_queryset(self):
         """Filter by user if user_id is provided"""
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().order_by('-timestamp')
         user_id = self.request.query_params.get('user_id')
         if user_id:
             queryset = queryset.filter(user_id=user_id)
         return queryset
+
+
+class RecentActivityView(generics.ListAPIView):
+    """Get recent activity log entries for notification dropdown"""
+    serializer_class = AuditLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        # Return 15 most recent audit log entries
+        return AuditLog.objects.select_related('user').order_by('-timestamp')[:15]

@@ -2,13 +2,16 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import posService from '../services/posService';
 import userService from '../services/userService';
+import api from '../services/api';
 import {
     Activity, Search, Filter, Download, Calendar,
     User, Clock, ArrowUpDown, ChevronDown, Loader2,
     ShoppingCart, Package, RotateCcw, DollarSign, X,
-    ChevronRight, AlertTriangle, Eye, CheckSquare, Square
+    ChevronRight, AlertTriangle, Eye, CheckSquare, Square,
+    LogIn, LogOut, Trash2, Edit, Plus, FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 // --- THEME CONSTANTS (Based on Belle Studio Logo Colors) ---
 const THEME = {
@@ -27,6 +30,9 @@ const THEME = {
 
 const ActivityLogPage = () => {
     const queryClient = useQueryClient();
+
+    // View Toggle
+    const [activeView, setActiveView] = useState('sales'); // 'sales' or 'system'
 
     // Filters
     const [selectedEmployee, setSelectedEmployee] = useState('');
@@ -54,19 +60,34 @@ const ActivityLogPage = () => {
         }
     });
 
-    // Fetch transactions as activity data
-    const { data: transactionsData, isLoading } = useQuery({
+    // Fetch transactions as activity data (Sales tab)
+    const { data: transactionsData, isLoading: isSalesLoading } = useQuery({
         queryKey: ['activity-log', selectedEmployee, startDate, endDate],
         queryFn: async () => {
-            const params = {};
+            const params = { export: 'true' }; // Disable pagination to get all records
             if (selectedEmployee) params.user_id = selectedEmployee;
             if (startDate) params.start_date = startDate;
             if (endDate) params.end_date = endDate;
 
             const res = await posService.getTransactions(params);
             return res.data?.results || res.data || [];
-        }
+        },
+        enabled: activeView === 'sales'
     });
+
+    // Fetch audit logs (System Activity tab)
+    const { data: auditLogsData, isLoading: isSystemLoading } = useQuery({
+        queryKey: ['audit-logs', selectedEmployee, actionType],
+        queryFn: async () => {
+            const params = { export: 'true' }; // Disable pagination to get all records
+            if (selectedEmployee) params.user_id = selectedEmployee;
+            const res = await api.get('/auth/audit-logs/', { params });
+            return res.data?.results || res.data || [];
+        },
+        enabled: activeView === 'system'
+    });
+
+    const isLoading = activeView === 'sales' ? isSalesLoading : isSystemLoading;
 
     // Fetch Details for Selected Transaction
     const { data: currentTransactionDetails } = useQuery({
@@ -190,8 +211,59 @@ const ActivityLogPage = () => {
         return activities;
     }, [transactions, actionType, searchTerm, sortField, sortOrder]);
 
-    // Calculate summary stats
-    const stats = useMemo(() => {
+    // Transform system audit logs into activity entries
+    const auditLogs = auditLogsData || [];
+    const systemActivityLog = useMemo(() => {
+        let activities = auditLogs.map(log => ({
+            id: log.id,
+            timestamp: new Date(log.timestamp),
+            employee: log.user_name || log.user?.username || 'System',
+            employeeId: log.user_id || log.user?.id,
+            action: log.action,
+            table_name: log.table_name,
+            description: log.description || `${log.action} on ${log.table_name?.replace('_', ' ')}`,
+            record_id: log.record_id,
+        }));
+
+        // Filter by action type for system logs
+        if (actionType) {
+            activities = activities.filter(a => a.action === actionType);
+        }
+
+        // Filter by search term
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            activities = activities.filter(a =>
+                a.employee.toLowerCase().includes(term) ||
+                a.description?.toLowerCase().includes(term) ||
+                a.table_name?.toLowerCase().includes(term)
+            );
+        }
+
+        // Sort
+        activities.sort((a, b) => {
+            let comparison = 0;
+            switch (sortField) {
+                case 'created_at':
+                    comparison = a.timestamp - b.timestamp;
+                    break;
+                case 'employee':
+                    comparison = a.employee.localeCompare(b.employee);
+                    break;
+                case 'action':
+                    comparison = a.action.localeCompare(b.action);
+                    break;
+                default:
+                    comparison = 0;
+            }
+            return sortOrder === 'desc' ? -comparison : comparison;
+        });
+
+        return activities;
+    }, [auditLogs, actionType, searchTerm, sortField, sortOrder]);
+
+    // Calculate summary stats for sales
+    const salesStats = useMemo(() => {
         const sales = activityLog.filter(a => a.action === 'SALE');
         const refunds = activityLog.filter(a => a.action === 'REFUND');
         return {
@@ -201,6 +273,19 @@ const ActivityLogPage = () => {
             totalRevenue: sales.reduce((sum, a) => sum + a.amount, 0)
         };
     }, [activityLog]);
+
+    // Calculate summary stats for system activities
+    const systemStats = useMemo(() => {
+        return {
+            totalActions: systemActivityLog.length,
+            creates: systemActivityLog.filter(a => a.action === 'CREATE').length,
+            updates: systemActivityLog.filter(a => a.action === 'UPDATE').length,
+            deletes: systemActivityLog.filter(a => a.action === 'DELETE').length,
+            logins: systemActivityLog.filter(a => a.action === 'LOGIN').length,
+        };
+    }, [systemActivityLog]);
+
+    const stats = activeView === 'sales' ? salesStats : systemStats;
 
     const handleSort = (field) => {
         if (sortField === field) {
@@ -223,34 +308,78 @@ const ActivityLogPage = () => {
 
     // Export to CSV
     const handleExport = () => {
-        if (activityLog.length === 0) {
-            toast.error('No data to export');
-            return;
+        // Helper to escape CSV fields (wrap in quotes and escape internal quotes)
+        const escapeCSV = (field) => {
+            const str = String(field || '');
+            // If field contains comma, quote, or newline, wrap in quotes and escape quotes
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        if (activeView === 'sales') {
+            if (activityLog.length === 0) {
+                toast.error('No data to export');
+                return;
+            }
+
+            const headers = ['Date/Time', 'Employee', 'Action', 'Description', 'Customer', 'Amount', 'Reference'];
+            const rows = activityLog.map(a => [
+                escapeCSV(a.timestamp.toLocaleString()),
+                escapeCSV(a.employee),
+                escapeCSV(a.action),
+                escapeCSV(a.description),
+                escapeCSV(a.customer),
+                escapeCSV(`₱${a.amount.toFixed(2)}`),
+                escapeCSV(a.reference)
+            ]);
+
+            // Use CRLF for Windows Excel compatibility and add BOM for UTF-8
+            const BOM = '\uFEFF';
+            const csvContent = BOM + headers.join(",") + "\r\n"
+                + rows.map(r => r.join(",")).join("\r\n");
+
+            // Use Blob for proper encoding
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `sales_activity_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success('Sales activity exported!');
+        } else {
+            if (systemActivityLog.length === 0) {
+                toast.error('No data to export');
+                return;
+            }
+
+            const headers = ['Date/Time', 'Employee', 'Action', 'Table', 'Description', 'Record ID'];
+            const rows = systemActivityLog.map(a => [
+                escapeCSV(a.timestamp.toLocaleString()),
+                escapeCSV(a.employee),
+                escapeCSV(a.action),
+                escapeCSV(a.table_name),
+                escapeCSV(a.description),
+                escapeCSV(a.record_id || '')
+            ]);
+
+            const csvContent = "data:text/csv;charset=utf-8,"
+                + headers.join(",") + "\n"
+                + rows.map(r => r.join(",")).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `system_activity_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success('System activity exported!');
         }
-
-        const headers = ['Date/Time', 'Employee', 'Action', 'Description', 'Customer', 'Amount', 'Reference'];
-        const rows = activityLog.map(a => [
-            a.timestamp.toLocaleString(),
-            a.employee,
-            a.action,
-            a.description,
-            a.customer,
-            `₱${a.amount.toFixed(2)}`,
-            a.reference
-        ]);
-
-        const csvContent = "data:text/csv;charset=utf-8,"
-            + headers.join(",") + "\n"
-            + rows.map(r => r.join(",")).join("\n");
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `activity_log_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success('Activity log exported!');
     };
 
     const getActionStyle = (action) => {
@@ -259,6 +388,16 @@ const ActivityLogPage = () => {
                 return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
             case 'REFUND':
                 return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+            case 'CREATE':
+                return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+            case 'UPDATE':
+                return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'DELETE':
+                return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+            case 'LOGIN':
+                return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+            case 'LOGOUT':
+                return 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
             default:
                 return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
         }
@@ -270,6 +409,16 @@ const ActivityLogPage = () => {
                 return <ShoppingCart className="w-4 h-4" />;
             case 'REFUND':
                 return <RotateCcw className="w-4 h-4" />;
+            case 'CREATE':
+                return <Plus className="w-4 h-4" />;
+            case 'UPDATE':
+                return <Edit className="w-4 h-4" />;
+            case 'DELETE':
+                return <Trash2 className="w-4 h-4" />;
+            case 'LOGIN':
+                return <LogIn className="w-4 h-4" />;
+            case 'LOGOUT':
+                return <LogOut className="w-4 h-4" />;
             default:
                 return <Activity className="w-4 h-4" />;
         }
@@ -305,58 +454,179 @@ const ActivityLogPage = () => {
                             Activity Log
                         </h1>
                         <p className="text-sm sm:text-base md:text-lg text-[#2F4F4F] dark:text-gray-300 font-medium mt-2">
-                            Track employee actions, transactions, and manage returns
+                            Track employee actions, transactions, and system activities
                         </p>
+                    </div>
+                    {/* Export Section with Employee Selector */}
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <select
+                                value={selectedEmployee}
+                                onChange={(e) => setSelectedEmployee(e.target.value)}
+                                className={`px-4 py-2.5 pr-10 rounded-xl outline-none appearance-none cursor-pointer text-sm font-medium ${THEME.inputBase}`}
+                            >
+                                <option value="">All Employees</option>
+                                {users.map(user => (
+                                    <option key={user.id} value={user.id}>
+                                        {user.full_name || user.username} ({user.role})
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                        <button
+                            onClick={handleExport}
+                            className={`px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 ${THEME.buttonPrimary}`}
+                        >
+                            <Download className="w-4 h-4" />
+                            Export {selectedEmployee ? 'Selected' : 'All'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* View Tabs */}
+                <div className={`rounded-2xl p-2 ${THEME.cardBase}`}>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { setActiveView('sales'); setActionType(''); }}
+                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeView === 'sales'
+                                ? 'bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                }`}
+                        >
+                            <ShoppingCart className="w-4 h-4" />
+                            Sales Activity
+                            {salesStats.totalActions > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${activeView === 'sales' ? 'bg-white/20' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                    {salesStats.totalActions}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => { setActiveView('system'); setActionType(''); }}
+                            className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${activeView === 'system'
+                                ? 'bg-gradient-to-r from-[#8FBC8F] to-[#A8D4A8] text-white shadow-lg'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                }`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            System Activity
+                            {systemStats.totalActions > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${activeView === 'system' ? 'bg-white/20' : 'bg-gray-300 dark:bg-gray-600'}`}>
+                                    {systemStats.totalActions}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#8FBC8F]/10 rounded-xl">
-                                <Activity className="w-5 h-5 text-[#8FBC8F]" />
+                {activeView === 'sales' ? (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#8FBC8F]/10 rounded-xl">
+                                    <Activity className="w-5 h-5 text-[#8FBC8F]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Total Actions</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{salesStats.totalActions}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase">Total Actions</p>
-                                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{stats.totalActions}</p>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                                    <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Sales</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{salesStats.totalSales}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
+                                    <RotateCcw className="w-5 h-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Returns</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{salesStats.totalRefunds}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
+                                    <DollarSign className="w-5 h-5 text-yellow-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Revenue</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>₱{salesStats.totalRevenue?.toLocaleString()}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
-                                <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#8FBC8F]/10 rounded-xl">
+                                    <Activity className="w-5 h-5 text-[#8FBC8F]" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Total</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{systemStats.totalActions}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase">Sales</p>
-                                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{stats.totalSales}</p>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                                    <Plus className="w-5 h-5 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Created</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{systemStats.creates}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                                    <Edit className="w-5 h-5 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Updated</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{systemStats.updates}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
+                                    <Trash2 className="w-5 h-5 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Deleted</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{systemStats.deletes}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl">
+                                    <LogIn className="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase">Logins</p>
+                                    <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{systemStats.logins}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-xl">
-                                <RotateCcw className="w-5 h-5 text-red-500" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase">Returns</p>
-                                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>{stats.totalRefunds}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
-                                <DollarSign className="w-5 h-5 text-yellow-600" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase">Revenue</p>
-                                <p className={`text-2xl font-extrabold ${THEME.headingText}`}>₱{stats.totalRevenue.toLocaleString()}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
 
                 {/* Filters */}
                 <div className={`rounded-2xl p-5 ${THEME.cardBase}`}>
@@ -426,8 +696,20 @@ const ActivityLogPage = () => {
                                     className={`w-full px-4 py-3 rounded-xl outline-none appearance-none cursor-pointer ${THEME.inputBase}`}
                                 >
                                     <option value="">All Actions</option>
-                                    <option value="SALE">Sales Only</option>
-                                    <option value="REFUND">Returns Only</option>
+                                    {activeView === 'sales' ? (
+                                        <>
+                                            <option value="SALE">Sales Only</option>
+                                            <option value="REFUND">Returns Only</option>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <option value="CREATE">Create</option>
+                                            <option value="UPDATE">Update</option>
+                                            <option value="DELETE">Delete</option>
+                                            <option value="LOGIN">Login</option>
+                                            <option value="LOGOUT">Logout</option>
+                                        </>
+                                    )}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
@@ -474,128 +756,226 @@ const ActivityLogPage = () => {
                         <div className="flex items-center justify-center py-20">
                             <Loader2 className="w-10 h-10 animate-spin text-[#8FBC8F]" />
                         </div>
-                    ) : activityLog.length === 0 ? (
-                        <div className="text-center py-20">
-                            <Activity className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
-                            <h3 className={`text-xl font-bold ${THEME.headingText} mb-2`}>No Activity Found</h3>
-                            <p className={THEME.subText}>Try adjusting your filters to see more results.</p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead className={THEME.tableHeader}>
-                                    <tr>
-                                        <th
-                                            onClick={() => handleSort('created_at')}
-                                            className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <Clock className="w-4 h-4" />
-                                                Date/Time
-                                                {sortField === 'created_at' && <ArrowUpDown className="w-3 h-3" />}
-                                            </div>
-                                        </th>
-                                        <th
-                                            onClick={() => handleSort('employee')}
-                                            className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <User className="w-4 h-4" />
-                                                Employee
-                                                {sortField === 'employee' && <ArrowUpDown className="w-3 h-3" />}
-                                            </div>
-                                        </th>
-                                        <th
-                                            onClick={() => handleSort('action')}
-                                            className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                Action
-                                                {sortField === 'action' && <ArrowUpDown className="w-3 h-3" />}
-                                            </div>
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                                            Description
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                                            Customer
-                                        </th>
-                                        <th
-                                            onClick={() => handleSort('amount')}
-                                            className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
-                                        >
-                                            <div className="flex items-center justify-end gap-2">
-                                                Amount
-                                                {sortField === 'amount' && <ArrowUpDown className="w-3 h-3" />}
-                                            </div>
-                                        </th>
-                                        <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
-                                    {activityLog.map((activity) => (
-                                        <tr key={activity.id} className={THEME.tableRow}>
-                                            <td className="px-6 py-4">
-                                                <div>
-                                                    <p className={`font-medium text-sm ${THEME.headingText}`}>
-                                                        {activity.timestamp.toLocaleDateString()}
-                                                    </p>
-                                                    <p className="text-xs text-gray-400">
-                                                        {activity.timestamp.toLocaleTimeString()}
-                                                    </p>
+                    ) : activeView === 'sales' ? (
+                        // Sales Activity Table
+                        activityLog.length === 0 ? (
+                            <div className="text-center py-20">
+                                <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                                <h3 className={`text-xl font-bold ${THEME.headingText} mb-2`}>No Sales Activity Found</h3>
+                                <p className={THEME.subText}>Try adjusting your filters to see more results.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className={THEME.tableHeader}>
+                                        <tr>
+                                            <th
+                                                onClick={() => handleSort('created_at')}
+                                                className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="w-4 h-4" />
+                                                    Date/Time
+                                                    {sortField === 'created_at' && <ArrowUpDown className="w-3 h-3" />}
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-[#8FBC8F]/10 flex items-center justify-center">
-                                                        <span className="text-sm font-bold text-[#8FBC8F]">
-                                                            {activity.employee.charAt(0).toUpperCase()}
-                                                        </span>
+                                            </th>
+                                            <th
+                                                onClick={() => handleSort('employee')}
+                                                className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <User className="w-4 h-4" />
+                                                    Employee
+                                                    {sortField === 'employee' && <ArrowUpDown className="w-3 h-3" />}
+                                                </div>
+                                            </th>
+                                            <th
+                                                onClick={() => handleSort('action')}
+                                                className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    Action
+                                                    {sortField === 'action' && <ArrowUpDown className="w-3 h-3" />}
+                                                </div>
+                                            </th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                                Description
+                                            </th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                                Customer
+                                            </th>
+                                            <th
+                                                onClick={() => handleSort('amount')}
+                                                className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center justify-end gap-2">
+                                                    Amount
+                                                    {sortField === 'amount' && <ArrowUpDown className="w-3 h-3" />}
+                                                </div>
+                                            </th>
+                                            <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
+                                        {activityLog.map((activity) => (
+                                            <tr key={activity.id} className={THEME.tableRow}>
+                                                <td className="px-6 py-4">
+                                                    <div>
+                                                        <p className={`font-medium text-sm ${THEME.headingText}`}>
+                                                            {activity.timestamp.toLocaleDateString()}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">
+                                                            {activity.timestamp.toLocaleTimeString()}
+                                                        </p>
                                                     </div>
-                                                    <span className={`font-medium ${THEME.headingText}`}>{activity.employee}</span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#8FBC8F]/10 flex items-center justify-center">
+                                                            <span className="text-sm font-bold text-[#8FBC8F]">
+                                                                {activity.employee.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <span className={`font-medium ${THEME.headingText}`}>{activity.employee}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold w-fit ${getActionStyle(activity.action)}`}>
+                                                            {getActionIcon(activity.action)}
+                                                            {activity.action}
+                                                        </span>
+                                                        {activity.refundInfo && (
+                                                            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium pl-1">
+                                                                {activity.refundInfo.refundedCount} of {activity.refundInfo.totalCount} items returned
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className={`font-medium text-sm ${THEME.headingText}`}>{activity.description}</p>
+                                                    <p className="text-xs text-gray-400">{activity.details}</p>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`text-sm ${THEME.subText}`}>{activity.customer}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className={`font-bold text-lg ${activity.action === 'REFUND' ? 'text-red-500' : 'text-[#8FBC8F]'}`}>
+                                                        {activity.action === 'REFUND' ? '-' : ''}₱{activity.amount.toLocaleString()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        onClick={() => setSelectedTransaction(activity.rawTransaction)}
+                                                        className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${THEME.headingText}`}
+                                                    >
+                                                        <Eye className="w-3 h-3" />
+                                                        Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
+                    ) : (
+                        // System Activity Table
+                        systemActivityLog.length === 0 ? (
+                            <div className="text-center py-20">
+                                <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" />
+                                <h3 className={`text-xl font-bold ${THEME.headingText} mb-2`}>No System Activity Found</h3>
+                                <p className={THEME.subText}>Try adjusting your filters to see more results.</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className={THEME.tableHeader}>
+                                        <tr>
+                                            <th
+                                                onClick={() => handleSort('created_at')}
+                                                className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className="w-4 h-4" />
+                                                    Date/Time
+                                                    {sortField === 'created_at' && <ArrowUpDown className="w-3 h-3" />}
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col gap-1">
+                                            </th>
+                                            <th
+                                                onClick={() => handleSort('employee')}
+                                                className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <User className="w-4 h-4" />
+                                                    Employee
+                                                    {sortField === 'employee' && <ArrowUpDown className="w-3 h-3" />}
+                                                </div>
+                                            </th>
+                                            <th
+                                                onClick={() => handleSort('action')}
+                                                className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:text-[#8FBC8F] transition-colors"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    Action
+                                                    {sortField === 'action' && <ArrowUpDown className="w-3 h-3" />}
+                                                </div>
+                                            </th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                                Table/Category
+                                            </th>
+                                            <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                                                Description
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
+                                        {systemActivityLog.map((activity) => (
+                                            <tr key={activity.id} className={THEME.tableRow}>
+                                                <td className="px-6 py-4">
+                                                    <div>
+                                                        <p className={`font-medium text-sm ${THEME.headingText}`}>
+                                                            {activity.timestamp.toLocaleDateString()}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">
+                                                            {activity.timestamp.toLocaleTimeString()}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#8FBC8F]/10 flex items-center justify-center">
+                                                            <span className="text-sm font-bold text-[#8FBC8F]">
+                                                                {activity.employee.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <span className={`font-medium ${THEME.headingText}`}>{activity.employee}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
                                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold w-fit ${getActionStyle(activity.action)}`}>
                                                         {getActionIcon(activity.action)}
                                                         {activity.action}
                                                     </span>
-                                                    {activity.refundInfo && (
-                                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium pl-1">
-                                                            {activity.refundInfo.refundedCount} of {activity.refundInfo.totalCount} items returned
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <p className={`font-medium text-sm ${THEME.headingText}`}>{activity.description}</p>
-                                                <p className="text-xs text-gray-400">{activity.details}</p>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-sm ${THEME.subText}`}>{activity.customer}</span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <span className={`font-bold text-lg ${activity.action === 'REFUND' ? 'text-red-500' : 'text-[#8FBC8F]'}`}>
-                                                    {activity.action === 'REFUND' ? '-' : ''}₱{activity.amount.toLocaleString()}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <button
-                                                    onClick={() => setSelectedTransaction(activity.rawTransaction)}
-                                                    className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${THEME.headingText}`}
-                                                >
-                                                    <Eye className="w-3 h-3" />
-                                                    Details
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`text-sm font-medium ${THEME.headingText} capitalize`}>
+                                                        {activity.table_name?.replace(/_/g, ' ')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <p className={`text-sm ${THEME.subText} max-w-xs truncate`} title={activity.description}>
+                                                        {activity.description || '-'}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
                     )}
                 </div>
 

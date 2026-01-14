@@ -222,7 +222,9 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     
     def perform_update(self, serializer):
         try:
-            old_data = ProductDetailSerializer(self.get_object()).data
+            old_instance = self.get_object()
+            old_is_active = old_instance.is_active
+            old_data = ProductDetailSerializer(old_instance).data
             product = serializer.save()
             
             # Auto-resolve low stock alerts if stock is now above reorder level
@@ -238,13 +240,17 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
                     )
             
             try:
+                # Detect if this is a RESTORE action (is_active changed from False to True)
+                is_restore = not old_is_active and product.is_active
+                
                 create_audit_log(
                     user=self.request.user,
-                    action='UPDATE',
+                    action='CREATE' if is_restore else 'UPDATE',  # Use CREATE for restore visibility
                     table_name='products',
                     record_id=product.id,
                     old_values=old_data,
                     new_values=ProductDetailSerializer(product).data,
+                    description=f"Restored product: {product.name}" if is_restore else None,
                     request=self.request
                 )
             except Exception as audit_e:

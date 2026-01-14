@@ -4,7 +4,7 @@ import UserFormModal from '../components/users/UserFormModal';
 import {
     Users, PlusCircle, Trash2, Edit, Shield,
     CheckCircle, XCircle, Loader2, UserCog,
-    Archive, RotateCcw, ArchiveRestore
+    Archive, RotateCcw, ArchiveRestore, Search, Filter
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -32,6 +32,10 @@ const UserManagementPage = () => {
 
     // NEW: State to toggle between Active and Archived views
     const [viewMode, setViewMode] = useState('active'); // 'active' or 'archived'
+
+    // NEW: Search and Filter state
+    const [searchTerm, setSearchTerm] = useState('');
+    const [roleFilter, setRoleFilter] = useState(''); // '' = All roles
 
     // --- Data Fetching ---
     const fetchUsers = async () => {
@@ -63,10 +67,25 @@ const UserManagementPage = () => {
         fetchUsers();
     }, []);
 
-    // --- Filter Users based on Tabs ---
-    const filteredUsers = users.filter(user =>
-        viewMode === 'active' ? user.is_active : !user.is_active
-    );
+    // --- Filter Users based on Tabs, Search, and Role ---
+    const filteredUsers = users.filter(user => {
+        // Filter by active/archived status
+        const matchesStatus = viewMode === 'active' ? user.is_active : !user.is_active;
+
+        // Filter by search term (username, name, email)
+        const term = searchTerm.toLowerCase();
+        const matchesSearch = !searchTerm ||
+            user.username?.toLowerCase().includes(term) ||
+            user.full_name?.toLowerCase().includes(term) ||
+            user.email?.toLowerCase().includes(term) ||
+            user.first_name?.toLowerCase().includes(term) ||
+            user.last_name?.toLowerCase().includes(term);
+
+        // Filter by role
+        const matchesRole = !roleFilter || user.role === roleFilter;
+
+        return matchesStatus && matchesSearch && matchesRole;
+    });
 
     // --- CRUD Handlers ---
     const handleAddUser = () => {
@@ -229,6 +248,58 @@ const UserManagementPage = () => {
                             {users.filter(u => !u.is_active).length}
                         </span>
                     </button>
+                </div>
+
+                {/* Search and Filter Section */}
+                <div className={`${THEME.cardBase} rounded-2xl p-4`}>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        {/* Search Input */}
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by username, name, or email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 bg-white/50 dark:bg-[#1A1A1D]/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8FBC8F]/50 focus:border-[#8FBC8F] transition-all"
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <XCircle className="w-5 h-5" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Role Filter */}
+                        <div className="relative sm:w-48">
+                            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <select
+                                value={roleFilter}
+                                onChange={(e) => setRoleFilter(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-[#D4C4B0] dark:border-[#8FBC8F]/30 bg-white/50 dark:bg-[#1A1A1D]/50 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#8FBC8F]/50 focus:border-[#8FBC8F] transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="">All Roles</option>
+                                <option value="OWNER">Owner</option>
+                                <option value="STAFF">Staff</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Results count */}
+                    <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                        Showing <span className="font-semibold text-[#8FBC8F]">{filteredUsers.length}</span> of {users.filter(u => viewMode === 'active' ? u.is_active : !u.is_active).length} {viewMode === 'active' ? 'active' : 'archived'} users
+                        {(searchTerm || roleFilter) && (
+                            <button
+                                onClick={() => { setSearchTerm(''); setRoleFilter(''); }}
+                                className="ml-2 text-[#8FBC8F] hover:underline"
+                            >
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Mobile Card View */}

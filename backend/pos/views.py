@@ -35,6 +35,13 @@ class SalesTransactionListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['created_at', 'total_amount']
     ordering = ['-created_at']
     
+    @property
+    def paginator(self):
+        """Disable pagination when 'no_page' or 'export' query param is set"""
+        if self.request.query_params.get('no_page') or self.request.query_params.get('export'):
+            return None
+        return super().paginator
+    
     def get_queryset(self):
         queryset = SalesTransaction.objects.select_related('created_by').all()
         
